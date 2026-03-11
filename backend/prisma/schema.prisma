@@ -1,0 +1,146 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  publisher
+  student
+}
+
+enum AssignmentStatus {
+  todo
+  done
+  late
+}
+
+enum AssessmentType {
+  assignment
+  quiz
+  project
+  exam
+}
+
+enum ExamKind {
+  midterm
+  final
+  quiz
+  practical
+}
+
+model Batch {
+  id        String   @id @default(cuid())
+  name      String
+  semester  String
+  year      Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         User[]
+  courses       Course[]
+  announcements Announcement[]
+  exams         Exam[]
+
+  @@unique([name, semester, year])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(student)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  batchId String
+  batch   Batch  @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  assignments Assignment[]
+  authoredAnnouncements Announcement[] @relation("AnnouncementAuthor")
+}
+
+model Course {
+  id         String   @id @default(cuid())
+  code       String
+  title      String
+  credits    Int
+  colorKey   String
+  instructor String?
+  schedule   Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  batchId String
+  batch   Batch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  assignments Assignment[]
+  exams       Exam[]
+
+  @@unique([batchId, code])
+}
+
+model Assignment {
+  id        String           @id @default(cuid())
+  title     String
+  type      AssessmentType
+  weight    Int?
+  dueAt     DateTime
+  status    AssignmentStatus @default(todo)
+  gradePct  Int?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dueAt])
+  @@index([courseId, dueAt])
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  createdAt DateTime @default(now())
+
+  batchId String
+  batch   Batch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   User   @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([batchId, createdAt(sort: Desc)])
+}
+
+model Exam {
+  id        String   @id @default(cuid())
+  kind      ExamKind
+  startsAt  DateTime
+  location  String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  batchId String
+  batch   Batch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([batchId, startsAt])
+}
