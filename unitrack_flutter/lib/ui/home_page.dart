@@ -6,6 +6,7 @@ import '../core/providers.dart';
 import '../main.dart';
 import '../features/courses/models.dart';
 import '../features/timeline/models.dart';
+import 'announcements_exams_page.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -78,9 +79,14 @@ class _HomePageState extends ConsumerState<HomePage>
                           _GpaPill(value: _formatGpa(ref.watch(gpaProvider))),
                           const SizedBox(width: 10),
                           _IconButtonSurface(
-                            onTap: () => ref
-                                .read(authStateNotifierProvider.notifier)
-                                .logout(),
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const AnnouncementsExamsPage(),
+                                ),
+                              );
+                            },
                             child: Icon(
                               Icons.settings_outlined,
                               size: 18,

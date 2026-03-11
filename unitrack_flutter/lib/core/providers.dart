@@ -14,6 +14,8 @@ import '../features/courses/models.dart';
 import '../features/timeline/timeline_repository.dart';
 import '../features/timeline/models.dart';
 import '../features/assignments/assignments_repository.dart';
+import '../features/announcements_exams/repository.dart';
+import '../features/announcements_exams/models.dart';
 
 final coursesRepositoryProvider = Provider<CoursesRepository>((ref) {
   return CoursesRepository(ref.watch(apiClientProvider));
@@ -32,6 +34,11 @@ final timelineRepositoryProvider = Provider<TimelineRepository>((ref) {
 
 final assignmentsRepositoryProvider = Provider<AssignmentsRepository>((ref) {
   return AssignmentsRepository(ref.watch(apiClientProvider));
+});
+
+final announcementsExamsRepositoryProvider =
+    Provider<AnnouncementsExamsRepository>((ref) {
+  return AnnouncementsExamsRepository(ref.watch(apiClientProvider));
 });
 
 final activeCourseIdProvider = StateProvider<String?>((ref) => null);
@@ -163,6 +170,20 @@ double _pctToGpa(double pct) {
   if (pct >= 65) return 1.0;
   return 0.0;
 }
+
+final announcementsProvider = FutureProvider<List<Announcement>>((ref) async {
+  final auth = ref.watch(authStateNotifierProvider);
+  if (!auth.isAuthed) return const [];
+  final repo = ref.watch(announcementsExamsRepositoryProvider);
+  return repo.listAnnouncements(auth.user!.batchId);
+});
+
+final examsProvider = FutureProvider<List<Exam>>((ref) async {
+  final auth = ref.watch(authStateNotifierProvider);
+  if (!auth.isAuthed) return const [];
+  final repo = ref.watch(announcementsExamsRepositoryProvider);
+  return repo.listExams(auth.user!.batchId);
+});
 
 final isAndroidEmulatorProvider = Provider<bool>((ref) {
   // Heuristic: if running on Android, assume emulator for dev.
