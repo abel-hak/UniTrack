@@ -36,3 +36,25 @@ class AuthState {
   static const signedOut = AuthState(token: null, user: null);
 }
 
+class Batch {
+  final String id;
+  final String name;
+  final String semester;
+  final int year;
+
+  const Batch({
+    required this.id,
+    required this.name,
+    required this.semester,
+    required this.year,
+  });
+
+  factory Batch.fromJson(Map<String, dynamic> json) => Batch(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        semester: json['semester'] as String,
+        year: (json['year'] as num).toInt(),
+      );
+
+  String get displayName => '$name · $semester $year';
+}

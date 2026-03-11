@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'core/notifications/notification_service.dart';
 import 'core/providers.dart';
 import 'ui/home_page.dart';
 import 'ui/login_page.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService().init();
   runApp(const ProviderScope(child: UniTrackApp()));
 }
 
@@ -15,13 +18,13 @@ class UniTrackApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const background = Color(0xFFF7F7F7); // hsl(0 0% 96.9%)
-    const foreground = Color(0xFF1A1A1A); // hsl(0 0% 10.2%)
+    const background = Color(0xFFF7F7F7);
+    const foreground = Color(0xFF1A1A1A);
     const card = Color(0xFFFFFFFF);
-    const secondary = Color(0xFFEBEBEB); // hsl(0 0% 92%)
-    const mutedForeground = Color(0xFF737373); // hsl(0 0% 45%)
-    const border = Color(0xFFE0E0E0); // hsl(0 0% 88%)
-    const primary = Color(0xFF0045AB); // hsl(217 100% 33.5%)
+    const secondary = Color(0xFFEBEBEB);
+    const mutedForeground = Color(0xFF737373);
+    const border = Color(0xFFE0E0E0);
+    const primary = Color(0xFF0045AB);
 
     final baseTextTheme = ThemeData.light().textTheme;
     final display = GoogleFonts.spaceGroteskTextTheme(baseTextTheme);

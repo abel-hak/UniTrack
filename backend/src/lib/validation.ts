@@ -6,17 +6,22 @@ export const registerSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(6),
+  batchId: z.string().min(1).optional(),
   batch: z.object({
     name: z.string().min(1),
     semester: z.string().min(1),
     year: z.number().int().min(2000).max(2100),
-  }),
-  role: roleSchema.optional(),
+  }).optional(),
 });
 
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+});
+
+export const passwordChangeSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(6),
 });
 
 export const courseCreateSchema = z.object({
@@ -27,6 +32,13 @@ export const courseCreateSchema = z.object({
   colorKey: z.string().min(1),
   instructor: z.string().min(1).optional(),
   schedule: z.unknown().optional(),
+});
+
+export const courseUpdateSchema = z.object({
+  title: z.string().min(1).optional(),
+  credits: z.number().int().min(1).max(20).optional(),
+  colorKey: z.string().min(1).optional(),
+  instructor: z.string().min(1).nullable().optional(),
 });
 
 export const assignmentCreateSchema = z.object({

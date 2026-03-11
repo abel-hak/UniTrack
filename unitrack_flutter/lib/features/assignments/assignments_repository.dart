@@ -25,13 +25,24 @@ class AssignmentsRepository {
 
   Future<void> patch({
     required String id,
+    String? title,
     String? status,
     int? gradePct,
+    bool clearGrade = false,
+    int? weight,
+    DateTime? dueAt,
   }) async {
     await _api.dio.patch('/assignments/$id', data: {
+      if (title != null) 'title': title,
       if (status != null) 'status': status,
+      if (clearGrade) 'gradePct': null,
       if (gradePct != null) 'gradePct': gradePct,
+      if (weight != null) 'weight': weight,
+      if (dueAt != null) 'dueAt': dueAt.toUtc().toIso8601String(),
     });
   }
-}
 
+  Future<void> delete({required String id}) async {
+    await _api.dio.delete('/assignments/$id');
+  }
+}

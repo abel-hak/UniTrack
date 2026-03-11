@@ -17,6 +17,8 @@ import '../features/assignments/assignments_repository.dart';
 import '../features/announcements_exams/repository.dart';
 import '../features/announcements_exams/models.dart';
 
+// ─── Repositories ────────────────────────────────────────────
+
 final coursesRepositoryProvider = Provider<CoursesRepository>((ref) {
   return CoursesRepository(ref.watch(apiClientProvider));
 });
@@ -41,15 +43,21 @@ final announcementsExamsRepositoryProvider =
   return AnnouncementsExamsRepository(ref.watch(apiClientProvider));
 });
 
+// ─── Timeline & Filtering ────────────────────────────────────
+
 final activeCourseIdProvider = StateProvider<String?>((ref) => null);
 
 final timelineProvider = FutureProvider<TimelineBundle>((ref) async {
   final auth = ref.watch(authStateNotifierProvider);
-  if (!auth.isAuthed) return const TimelineBundle(assignments: [], announcements: []);
+  if (!auth.isAuthed) {
+    return const TimelineBundle(assignments: [], announcements: []);
+  }
   final courseId = ref.watch(activeCourseIdProvider);
   final repo = ref.watch(timelineRepositoryProvider);
   return repo.fetch(courseId: courseId);
 });
+
+// ─── GPA ─────────────────────────────────────────────────────
 
 final gpaProvider = Provider<double?>((ref) {
   final courses = ref.watch(coursesProvider);
@@ -60,7 +68,6 @@ final gpaProvider = Provider<double?>((ref) {
 
   final courseMap = {for (final c in coursesData) c.id: c};
 
-  // Compute course percent from graded assignments.
   final byCourse = <String, List<int>>{};
   final weightedByCourse = <String, ({int sumWeighted, int sumWeight})>{};
 
@@ -108,7 +115,6 @@ final gpaProvider = Provider<double?>((ref) {
   return totalPoints / totalCredits;
 });
 
-/// Per-course percentage used for the Grades tab UI.
 final courseGradesProvider =
     Provider<List<({Course course, double percent})>>((ref) {
   final courses = ref.watch(coursesProvider);
@@ -171,6 +177,8 @@ double _pctToGpa(double pct) {
   return 0.0;
 }
 
+// ─── Announcements & Exams ───────────────────────────────────
+
 final announcementsProvider = FutureProvider<List<Announcement>>((ref) async {
   final auth = ref.watch(authStateNotifierProvider);
   if (!auth.isAuthed) return const [];
@@ -185,9 +193,17 @@ final examsProvider = FutureProvider<List<Exam>>((ref) async {
   return repo.listExams(auth.user!.batchId);
 });
 
+// ─── Batches (public, for registration) ──────────────────────
+
+final batchesProvider = FutureProvider<List<Batch>>((ref) async {
+  final baseUrl = ref.watch(baseUrlProvider);
+  final repo = AuthRepository(ApiClient(baseUrl: baseUrl));
+  return repo.listBatches();
+});
+
+// ─── Infrastructure ──────────────────────────────────────────
+
 final isAndroidEmulatorProvider = Provider<bool>((ref) {
-  // Heuristic: if running on Android, assume emulator for dev.
-  // For a real device you can flip this later or make it configurable.
   return !kIsWeb && Platform.isAndroid;
 });
 
@@ -212,6 +228,8 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   final token = ref.watch(authStateNotifierProvider).token;
   return ApiClient(baseUrl: baseUrl, token: token);
 });
+
+// ─── Auth State ──────────────────────────────────────────────
 
 class AuthStateNotifier extends Notifier<AuthState> {
   @override
@@ -245,9 +263,38 @@ class AuthStateNotifier extends Notifier<AuthState> {
     state = AuthState(token: token, user: user);
   }
 
+  Future<void> register({
+    required String name,
+    required String email,
+    required String password,
+    required String batchId,
+  }) async {
+    final baseUrl = ref.read(baseUrlProvider);
+    final repo = AuthRepository(ApiClient(baseUrl: baseUrl));
+    final (token, user) = await repo.register(
+      name: name,
+      email: email,
+      password: password,
+      batchId: batchId,
+    );
+    await ref.read(tokenStoreProvider).writeToken(token);
+    state = AuthState(token: token, user: user);
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final api = ref.read(apiClientProvider);
+    final repo = AuthRepository(api);
+    await repo.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+  }
+
   Future<void> logout() async {
     await ref.read(tokenStoreProvider).clear();
     state = AuthState.signedOut;
   }
 }
-

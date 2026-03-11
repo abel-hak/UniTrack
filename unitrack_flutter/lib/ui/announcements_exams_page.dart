@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../core/notifications/notification_service.dart';
 import '../core/providers.dart';
 import '../features/announcements_exams/models.dart';
 import '../main.dart';
@@ -11,9 +12,12 @@ class AnnouncementsExamsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = UniTrackColors.of(context);
     final text = Theme.of(context).textTheme;
-    final auth = ref.watch(authStateNotifierProvider).user!;
+    final authState = ref.watch(authStateNotifierProvider);
+    if (!authState.isAuthed) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final auth = authState.user!;
     final isPublisher = auth.role == 'admin' || auth.role == 'publisher';
 
     return DefaultTabController(
@@ -27,15 +31,6 @@ class AnnouncementsExamsPage extends ConsumerWidget {
             'Announcements & Exams',
             style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: () {
-                ref.read(authStateNotifierProvider.notifier).logout();
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              },
-            ),
-          ],
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Announcements'),
@@ -85,8 +80,8 @@ class AnnouncementsExamsPage extends ConsumerWidget {
         return StatefulBuilder(
           builder: (context, setState) {
             return Padding(
-              padding:
-                  EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+              padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom),
               child: Container(
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
@@ -142,9 +137,8 @@ class AnnouncementsExamsPage extends ConsumerWidget {
                               final body = bodyController.text.trim();
                               if (title.isEmpty || body.isEmpty) return;
                               setState(() => saving = true);
-                              final auth = ref
-                                  .read(authStateNotifierProvider)
-                                  .user!;
+                              final auth =
+                                  ref.read(authStateNotifierProvider).user!;
                               await ref
                                   .read(announcementsExamsRepositoryProvider)
                                   .createAnnouncement(
@@ -157,13 +151,24 @@ class AnnouncementsExamsPage extends ConsumerWidget {
                                 Navigator.of(context).pop();
                               }
                             },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
                       child: saving
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text('Post'),
+                          : const Text('Post',
+                              style: TextStyle(fontWeight: FontWeight.w800)),
                     ),
                   ],
                 ),
@@ -200,20 +205,14 @@ class AnnouncementsExamsPage extends ConsumerWidget {
               final d = await showDatePicker(
                 context: context,
                 initialDate: startsAt,
-                firstDate: DateTime.now()
-                    .subtract(const Duration(days: 1)),
-                lastDate:
-                    DateTime.now().add(const Duration(days: 365)),
+                firstDate:
+                    DateTime.now().subtract(const Duration(days: 1)),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
               );
               if (d == null) return;
               setState(() {
-                startsAt = DateTime(
-                  d.year,
-                  d.month,
-                  d.day,
-                  startsAt.hour,
-                  startsAt.minute,
-                );
+                startsAt = DateTime(d.year, d.month, d.day,
+                    startsAt.hour, startsAt.minute);
               });
             }
 
@@ -224,19 +223,14 @@ class AnnouncementsExamsPage extends ConsumerWidget {
               );
               if (t == null) return;
               setState(() {
-                startsAt = DateTime(
-                  startsAt.year,
-                  startsAt.month,
-                  startsAt.day,
-                  t.hour,
-                  t.minute,
-                );
+                startsAt = DateTime(startsAt.year, startsAt.month,
+                    startsAt.day, t.hour, t.minute);
               });
             }
 
             return Padding(
-              padding:
-                  EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+              padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom),
               child: Container(
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
@@ -349,9 +343,8 @@ class AnnouncementsExamsPage extends ConsumerWidget {
                           ? null
                           : () async {
                               setState(() => saving = true);
-                              final auth = ref
-                                  .read(authStateNotifierProvider)
-                                  .user!;
+                              final auth =
+                                  ref.read(authStateNotifierProvider).user!;
                               await ref
                                   .read(announcementsExamsRepositoryProvider)
                                   .createExam(
@@ -359,21 +352,42 @@ class AnnouncementsExamsPage extends ConsumerWidget {
                                     courseId: courseId,
                                     kind: kind,
                                     startsAt: startsAt,
-                                    location: locationController.text.trim(),
+                                    location:
+                                        locationController.text.trim(),
                                     notes: notesController.text.trim(),
                                   );
+                              final course = courses.firstWhere(
+                                  (c) => c.id == courseId);
+                              NotificationService().scheduleExamReminder(
+                                id: startsAt.millisecondsSinceEpoch ~/
+                                    1000,
+                                courseCode: course.code,
+                                kind: kind,
+                                startsAt: startsAt,
+                              );
                               ref.invalidate(examsProvider);
                               if (context.mounted) {
                                 Navigator.of(context).pop();
                               }
                             },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
                       child: saving
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text('Schedule'),
+                          : const Text('Schedule',
+                              style: TextStyle(fontWeight: FontWeight.w800)),
                     ),
                   ],
                 ),
@@ -386,6 +400,8 @@ class AnnouncementsExamsPage extends ConsumerWidget {
   }
 }
 
+// ─── Announcements Tab ───────────────────────────────────────
+
 class _AnnouncementsTab extends ConsumerWidget {
   const _AnnouncementsTab();
 
@@ -394,30 +410,47 @@ class _AnnouncementsTab extends ConsumerWidget {
     final async = ref.watch(announcementsProvider);
     final colors = UniTrackColors.of(context);
     final text = Theme.of(context).textTheme;
+    final isPrivileged = _isPrivileged(ref);
 
     return async.when(
       data: (items) {
         if (items.isEmpty) {
           return Center(
-            child: Text(
-              'No announcements yet.',
-              style: text.bodyMedium?.copyWith(
-                color: colors.mutedForeground,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.campaign_outlined,
+                    size: 48,
+                    color: colors.mutedForeground.withValues(alpha: 0.4)),
+                const SizedBox(height: 12),
+                Text(
+                  'No announcements yet',
+                  style: text.bodyMedium?.copyWith(
+                    color: colors.mutedForeground,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           );
         }
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 92),
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final a = items[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _AnnouncementCard(item: a),
-            );
-          },
+        return RefreshIndicator(
+          onRefresh: () async => ref.invalidate(announcementsProvider),
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 92),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final a = items[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _AnnouncementCard(
+                  item: a,
+                  canDelete: isPrivileged,
+                  onDelete: () => _deleteAnnouncement(context, ref, a),
+                ),
+              );
+            },
+          ),
         );
       },
       loading: () => const Center(
@@ -428,20 +461,61 @@ class _AnnouncementsTab extends ConsumerWidget {
         ),
       ),
       error: (_, __) => Center(
-        child: Text(
-          'Failed to load announcements.',
-          style: text.bodySmall
-              ?.copyWith(color: colors.mutedForeground),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Failed to load announcements.',
+              style: text.bodySmall?.copyWith(color: colors.mutedForeground),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => ref.invalidate(announcementsProvider),
+              child: const Text('Retry'),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Future<void> _deleteAnnouncement(
+      BuildContext context, WidgetRef ref, Announcement a) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete announcement?'),
+        content: Text('Delete "${a.title}"? This cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child:
+                  const Text('Delete', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    final auth = ref.read(authStateNotifierProvider).user!;
+    await ref
+        .read(announcementsExamsRepositoryProvider)
+        .deleteAnnouncement(batchId: auth.batchId, id: a.id);
+    ref.invalidate(announcementsProvider);
   }
 }
 
 class _AnnouncementCard extends StatelessWidget {
   final Announcement item;
+  final bool canDelete;
+  final VoidCallback onDelete;
 
-  const _AnnouncementCard({required this.item});
+  const _AnnouncementCard({
+    required this.item,
+    required this.canDelete,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -490,6 +564,14 @@ class _AnnouncementCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (canDelete)
+                IconButton(
+                  icon: Icon(Icons.delete_outline,
+                      size: 18, color: Colors.red.shade300),
+                  onPressed: onDelete,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
             ],
           ),
           const SizedBox(height: 6),
@@ -515,6 +597,8 @@ class _AnnouncementCard extends StatelessWidget {
   }
 }
 
+// ─── Exams Tab ───────────────────────────────────────────────
+
 class _ExamsTab extends ConsumerWidget {
   const _ExamsTab();
 
@@ -523,30 +607,47 @@ class _ExamsTab extends ConsumerWidget {
     final async = ref.watch(examsProvider);
     final colors = UniTrackColors.of(context);
     final text = Theme.of(context).textTheme;
+    final isPrivileged = _isPrivileged(ref);
 
     return async.when(
       data: (items) {
         if (items.isEmpty) {
           return Center(
-            child: Text(
-              'No exams scheduled.',
-              style: text.bodyMedium?.copyWith(
-                color: colors.mutedForeground,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.menu_book_outlined,
+                    size: 48,
+                    color: colors.mutedForeground.withValues(alpha: 0.4)),
+                const SizedBox(height: 12),
+                Text(
+                  'No exams scheduled',
+                  style: text.bodyMedium?.copyWith(
+                    color: colors.mutedForeground,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           );
         }
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 92),
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final e = items[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _ExamCard(item: e),
-            );
-          },
+        return RefreshIndicator(
+          onRefresh: () async => ref.invalidate(examsProvider),
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 92),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final e = items[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _ExamCard(
+                  item: e,
+                  canDelete: isPrivileged,
+                  onDelete: () => _deleteExam(context, ref, e),
+                ),
+              );
+            },
+          ),
         );
       },
       loading: () => const Center(
@@ -557,32 +658,79 @@ class _ExamsTab extends ConsumerWidget {
         ),
       ),
       error: (_, __) => Center(
-        child: Text(
-          'Failed to load exams.',
-          style: text.bodySmall
-              ?.copyWith(color: colors.mutedForeground),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Failed to load exams.',
+              style: text.bodySmall?.copyWith(color: colors.mutedForeground),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => ref.invalidate(examsProvider),
+              child: const Text('Retry'),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Future<void> _deleteExam(
+      BuildContext context, WidgetRef ref, Exam e) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete exam?'),
+        content: Text(
+            'Delete "${e.course.code} ${_capLocal(e.kind)}"? This cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child:
+                  const Text('Delete', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    final auth = ref.read(authStateNotifierProvider).user!;
+    await ref
+        .read(announcementsExamsRepositoryProvider)
+        .deleteExam(batchId: auth.batchId, id: e.id);
+    ref.invalidate(examsProvider);
   }
 }
 
 class _ExamCard extends StatelessWidget {
   final Exam item;
+  final bool canDelete;
+  final VoidCallback onDelete;
 
-  const _ExamCard({required this.item});
+  const _ExamCard({
+    required this.item,
+    required this.canDelete,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
     final colors = UniTrackColors.of(context);
     final text = Theme.of(context).textTheme;
+    final now = DateTime.now();
+    final daysUntil = item.startsAt.difference(now).inDays;
+    final isUpcoming = daysUntil >= 0 && daysUntil <= 3;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colors.border),
+        border: Border.all(
+          color: isUpcoming ? const Color(0xFFE11D48).withValues(alpha: 0.3) : colors.border,
+        ),
         boxShadow: [
           BoxShadow(
             color: colors.shadowCard,
@@ -621,28 +769,76 @@ class _ExamCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  '${DateFormat('EEE, MMM d').format(item.startsAt)} · '
-                  '${DateFormat('h:mm a').format(item.startsAt)}',
-                  style: text.labelSmall?.copyWith(
-                    color: colors.mutedForeground.withValues(alpha: 0.9),
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      '${DateFormat('EEE, MMM d').format(item.startsAt)} · '
+                      '${DateFormat('h:mm a').format(item.startsAt)}',
+                      style: text.labelSmall?.copyWith(
+                        color: isUpcoming
+                            ? const Color(0xFFE11D48)
+                            : colors.mutedForeground.withValues(alpha: 0.9),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (isUpcoming) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE11D48).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          daysUntil == 0
+                              ? 'Today'
+                              : daysUntil == 1
+                                  ? 'Tomorrow'
+                                  : 'In $daysUntil days',
+                          style: text.labelSmall?.copyWith(
+                            color: const Color(0xFFE11D48),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 if (item.location != null && item.location!.isNotEmpty)
-                  Text(
-                    item.location!,
-                    style: text.labelSmall?.copyWith(
-                      color: colors.mutedForeground.withValues(alpha: 0.9),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      item.location!,
+                      style: text.labelSmall?.copyWith(
+                        color: colors.mutedForeground.withValues(alpha: 0.9),
+                      ),
                     ),
                   ),
               ],
             ),
           ),
+          if (canDelete)
+            IconButton(
+              icon: Icon(Icons.delete_outline,
+                  size: 18, color: Colors.red.shade300),
+              onPressed: onDelete,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
         ],
       ),
     );
   }
+}
+
+// ─── Helpers ─────────────────────────────────────────────────
+
+bool _isPrivileged(WidgetRef ref) {
+  final auth = ref.watch(authStateNotifierProvider).user;
+  if (auth == null) return false;
+  return auth.role == 'admin' || auth.role == 'publisher';
 }
 
 Color _courseDotColor(BuildContext context, String colorKey) {
@@ -658,5 +854,3 @@ Color _courseDotColor(BuildContext context, String colorKey) {
 
 String _capLocal(String s) =>
     s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
-
-

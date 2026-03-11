@@ -13,5 +13,26 @@ class CoursesRepository {
     final items = (res.data!['courses'] as List).cast<Map<String, dynamic>>();
     return items.map(Course.fromJson).toList();
   }
-}
 
+  Future<Course> create({
+    required String batchId,
+    required String code,
+    required String title,
+    required int credits,
+    required String colorKey,
+    String? instructor,
+  }) async {
+    final res = await _api.dio.post<Map<String, dynamic>>(
+      '/courses',
+      data: {
+        'batchId': batchId,
+        'code': code,
+        'title': title,
+        'credits': credits,
+        'colorKey': colorKey,
+        if (instructor != null) 'instructor': instructor,
+      },
+    );
+    return Course.fromJson(res.data!['course'] as Map<String, dynamic>);
+  }
+}

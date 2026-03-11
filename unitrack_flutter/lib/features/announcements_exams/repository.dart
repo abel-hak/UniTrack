@@ -25,6 +25,13 @@ class AnnouncementsExamsRepository {
     );
   }
 
+  Future<void> deleteAnnouncement({
+    required String batchId,
+    required String id,
+  }) async {
+    await _api.dio.delete('/batches/$batchId/announcements/$id');
+  }
+
   Future<List<Exam>> listExams(String batchId) async {
     final res =
         await _api.dio.get<Map<String, dynamic>>('/batches/$batchId/exams');
@@ -51,5 +58,11 @@ class AnnouncementsExamsRepository {
       },
     );
   }
-}
 
+  Future<void> deleteExam({
+    required String batchId,
+    required String id,
+  }) async {
+    await _api.dio.delete('/batches/$batchId/exams/$id');
+  }
+}

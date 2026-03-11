@@ -20,8 +20,10 @@ import {
   assignmentCreateSchema,
   assignmentPatchSchema,
   courseCreateSchema,
+  courseUpdateSchema,
   examCreateSchema,
   loginSchema,
+  passwordChangeSchema,
   registerSchema,
 } from "./lib/validation";
 
@@ -35,20 +37,35 @@ app.use(morgan("dev"));
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
-// Auth
+// ─── Auth ────────────────────────────────────────────────────
+
 app.post("/auth/register", async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) return jsonError(res, 400, "Invalid payload");
 
-  const { name, email, password, batch, role } = parsed.data;
+  const { name, email, password, batchId, batch } = parsed.data;
+
+  if (!batchId && !batch) {
+    return jsonError(res, 400, "Provide batchId or batch");
+  }
+
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return jsonError(res, 409, "Email already registered");
 
-  const batchRow = await prisma.batch.upsert({
-    where: { name_semester_year: { name: batch.name, semester: batch.semester, year: batch.year } },
-    create: { name: batch.name, semester: batch.semester, year: batch.year },
-    update: {},
-  });
+  let resolvedBatchId: string;
+
+  if (batchId) {
+    const batchRow = await prisma.batch.findUnique({ where: { id: batchId } });
+    if (!batchRow) return jsonError(res, 404, "Batch not found");
+    resolvedBatchId = batchRow.id;
+  } else {
+    const batchRow = await prisma.batch.upsert({
+      where: { name_semester_year: { name: batch!.name, semester: batch!.semester, year: batch!.year } },
+      create: { name: batch!.name, semester: batch!.semester, year: batch!.year },
+      update: {},
+    });
+    resolvedBatchId = batchRow.id;
+  }
 
   const passwordHash = await hashPassword(password);
   const user = await prisma.user.create({
@@ -56,14 +73,14 @@ app.post("/auth/register", async (req, res) => {
       name,
       email,
       passwordHash,
-      role: role ?? "student",
-      batchId: batchRow.id,
+      role: "student",
+      batchId: resolvedBatchId,
     },
     select: { id: true, name: true, email: true, role: true, batchId: true },
   });
 
   const token = signAccessToken(user);
-  res.json({ token, user });
+  res.status(201).json({ token, user });
 });
 
 app.post("/auth/login", async (req, res) => {
@@ -93,7 +110,39 @@ app.get("/auth/me", async (req, res) => {
   res.json({ user });
 });
 
-// Courses
+app.patch("/auth/password", async (req, res) => {
+  const user = await requireAuth(req);
+  if (!user) return jsonError(res, 401, "Unauthorized");
+
+  const parsed = passwordChangeSchema.safeParse(req.body);
+  if (!parsed.success) return jsonError(res, 400, "Invalid payload");
+
+  const fullUser = await prisma.user.findUnique({ where: { id: user.id } });
+  if (!fullUser) return jsonError(res, 404, "User not found");
+
+  const ok = await verifyPassword(parsed.data.currentPassword, fullUser.passwordHash);
+  if (!ok) return jsonError(res, 401, "Current password is incorrect");
+
+  const newHash = await hashPassword(parsed.data.newPassword);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: newHash },
+  });
+  res.json({ ok: true });
+});
+
+// ─── Batches ─────────────────────────────────────────────────
+
+app.get("/batches", async (_req, res) => {
+  const batches = await prisma.batch.findMany({
+    orderBy: { year: "desc" },
+    select: { id: true, name: true, semester: true, year: true },
+  });
+  res.json({ batches });
+});
+
+// ─── Courses ─────────────────────────────────────────────────
+
 app.get("/courses", async (req, res) => {
   const user = await requireAuth(req);
   if (!user) return jsonError(res, 401, "Unauthorized");
@@ -123,7 +172,27 @@ app.post("/courses", async (req, res) => {
   res.status(201).json({ course: created });
 });
 
-// Assignments (per-user)
+app.patch("/courses/:id", async (req, res) => {
+  const user = await requireAuth(req);
+  if (!user) return jsonError(res, 401, "Unauthorized");
+  if (denyIfNoRole(res, requireRole(user, ["admin", "publisher"]))) return;
+
+  const parsed = courseUpdateSchema.safeParse(req.body);
+  if (!parsed.success) return jsonError(res, 400, "Invalid payload");
+
+  const existing = await prisma.course.findUnique({ where: { id: req.params.id } });
+  if (!existing) return jsonError(res, 404, "Not found");
+  if (existing.batchId !== user.batchId) return jsonError(res, 403, "Forbidden");
+
+  const updated = await prisma.course.update({
+    where: { id: existing.id },
+    data: parsed.data,
+  });
+  res.json({ course: updated });
+});
+
+// ─── Assignments (per-user) ──────────────────────────────────
+
 app.get("/assignments", async (req, res) => {
   const user = await requireAuth(req);
   if (!user) return jsonError(res, 401, "Unauthorized");
@@ -135,6 +204,7 @@ app.get("/assignments", async (req, res) => {
   const assignments = await prisma.assignment.findMany({
     where: where as any,
     orderBy: { dueAt: "asc" },
+    include: { course: { select: { id: true, code: true, title: true, colorKey: true } } },
   });
   res.json({ assignments });
 });
@@ -192,7 +262,22 @@ app.patch("/assignments/:id", async (req, res) => {
   res.json({ assignment: updated });
 });
 
-// Announcements (shared per batch)
+app.delete("/assignments/:id", async (req, res) => {
+  const user = await requireAuth(req);
+  if (!user) return jsonError(res, 401, "Unauthorized");
+
+  const existing = await prisma.assignment.findUnique({
+    where: { id: req.params.id },
+  });
+  if (!existing) return jsonError(res, 404, "Not found");
+  if (existing.userId !== user.id) return jsonError(res, 403, "Forbidden");
+
+  await prisma.assignment.delete({ where: { id: existing.id } });
+  res.json({ ok: true });
+});
+
+// ─── Announcements (shared per batch) ────────────────────────
+
 app.get("/batches/:batchId/announcements", async (req, res) => {
   const user = await requireAuth(req);
   if (!user) return jsonError(res, 401, "Unauthorized");
@@ -228,7 +313,24 @@ app.post("/batches/:batchId/announcements", async (req, res) => {
   res.status(201).json({ announcement: created });
 });
 
-// Exams (shared per batch)
+app.delete("/batches/:batchId/announcements/:id", async (req, res) => {
+  const user = await requireAuth(req);
+  if (!user) return jsonError(res, 401, "Unauthorized");
+  if (req.params.batchId !== user.batchId) return jsonError(res, 403, "Forbidden");
+  if (denyIfNoRole(res, requireRole(user, ["admin", "publisher"]))) return;
+
+  const existing = await prisma.announcement.findUnique({
+    where: { id: req.params.id },
+  });
+  if (!existing) return jsonError(res, 404, "Not found");
+  if (existing.batchId !== user.batchId) return jsonError(res, 403, "Forbidden");
+
+  await prisma.announcement.delete({ where: { id: existing.id } });
+  res.json({ ok: true });
+});
+
+// ─── Exams (shared per batch) ────────────────────────────────
+
 app.get("/batches/:batchId/exams", async (req, res) => {
   const user = await requireAuth(req);
   if (!user) return jsonError(res, 401, "Unauthorized");
@@ -273,7 +375,24 @@ app.post("/batches/:batchId/exams", async (req, res) => {
   res.status(201).json({ exam: created });
 });
 
-// Timeline aggregation (client convenience)
+app.delete("/batches/:batchId/exams/:id", async (req, res) => {
+  const user = await requireAuth(req);
+  if (!user) return jsonError(res, 401, "Unauthorized");
+  if (req.params.batchId !== user.batchId) return jsonError(res, 403, "Forbidden");
+  if (denyIfNoRole(res, requireRole(user, ["admin", "publisher"]))) return;
+
+  const existing = await prisma.exam.findUnique({
+    where: { id: req.params.id },
+  });
+  if (!existing) return jsonError(res, 404, "Not found");
+  if (existing.batchId !== user.batchId) return jsonError(res, 403, "Forbidden");
+
+  await prisma.exam.delete({ where: { id: existing.id } });
+  res.json({ ok: true });
+});
+
+// ─── Timeline aggregation ────────────────────────────────────
+
 app.get("/timeline", async (req, res) => {
   const user = await requireAuth(req);
   if (!user) return jsonError(res, 401, "Unauthorized");
@@ -302,11 +421,19 @@ app.get("/timeline", async (req, res) => {
     take: 50,
   });
 
-  res.json({ assignments, announcements });
+  const exams = await prisma.exam.findMany({
+    where: {
+      batchId: user.batchId,
+      ...(courseId ? { courseId } : {}),
+      startsAt: { gte: from, lte: to },
+    },
+    include: { course: { select: { id: true, code: true, title: true, colorKey: true } } },
+    orderBy: { startsAt: "asc" },
+  });
+
+  res.json({ assignments, announcements, exams });
 });
 
 app.listen(port, () => {
-  // eslint-disable-next-line no-console
   console.log(`UniTrack API listening on http://localhost:${port}`);
 });
-

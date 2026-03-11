@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import '../core/providers.dart';
 import '../main.dart';
+import 'register_page.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -13,8 +14,8 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  final _email = TextEditingController(text: 'admin@unitrack.dev');
-  final _password = TextEditingController(text: 'admin123');
+  final _email = TextEditingController();
+  final _password = TextEditingController();
   bool _loading = false;
   String? _error;
 
@@ -72,7 +73,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 24),
+                  const Spacer(flex: 2),
                   Text(
                     'UniTrack',
                     style: text.headlineSmall?.copyWith(
@@ -95,6 +96,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     label: 'Password',
                     controller: _password,
                     obscureText: true,
+                    onSubmitted: (_) => _submit(),
                   ),
                   const SizedBox(height: 18),
                   if (_error != null) ...[
@@ -128,21 +130,42 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             style: TextStyle(fontWeight: FontWeight.w800),
                           ),
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Dev accounts:\n- admin@unitrack.dev / admin123\n- publisher@unitrack.dev / publisher123',
-                    style: text.bodySmall?.copyWith(
-                      color: colors.mutedForeground,
-                      fontWeight: FontWeight.w600,
-                      height: 1.3,
-                    ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Don't have an account? ",
+                        style: text.bodySmall?.copyWith(
+                          color: colors.mutedForeground,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterPage(),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          'Create account',
+                          style: text.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const Spacer(),
+                  const Spacer(flex: 3),
                   Text(
-                    'API base: ${ref.watch(baseUrlProvider)}',
+                    'API: ${ref.watch(baseUrlProvider)}',
+                    textAlign: TextAlign.center,
                     style: text.labelSmall?.copyWith(
-                      color: colors.mutedForeground,
-                      fontWeight: FontWeight.w700,
+                      color: colors.mutedForeground.withValues(alpha: 0.6),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -159,11 +182,13 @@ class _Field extends StatelessWidget {
   final String label;
   final TextEditingController controller;
   final bool obscureText;
+  final ValueChanged<String>? onSubmitted;
 
   const _Field({
     required this.label,
     required this.controller,
     this.obscureText = false,
+    this.onSubmitted,
   });
 
   @override
@@ -185,6 +210,9 @@ class _Field extends StatelessWidget {
         TextField(
           controller: controller,
           obscureText: obscureText,
+          onSubmitted: onSubmitted,
+          textInputAction:
+              onSubmitted != null ? TextInputAction.go : TextInputAction.next,
           decoration: InputDecoration(
             filled: true,
             fillColor: Theme.of(context).colorScheme.surface,
@@ -198,7 +226,8 @@ class _Field extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
+              borderSide:
+                  BorderSide(color: Theme.of(context).colorScheme.primary),
             ),
           ),
         ),
@@ -206,4 +235,3 @@ class _Field extends StatelessWidget {
     );
   }
 }
-

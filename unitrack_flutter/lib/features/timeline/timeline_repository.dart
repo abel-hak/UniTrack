@@ -19,7 +19,15 @@ class TimelineRepository {
         .cast<Map<String, dynamic>>()
         .map(TimelineAnnouncement.fromJson)
         .toList();
-    return TimelineBundle(assignments: assignments, announcements: announcements);
+    final exams = (data['exams'] as List?)
+            ?.cast<Map<String, dynamic>>()
+            .map(TimelineExam.fromJson)
+            .toList() ??
+        const [];
+    return TimelineBundle(
+      assignments: assignments,
+      announcements: announcements,
+      exams: exams,
+    );
   }
 }
-

@@ -55,6 +55,22 @@ async function main() {
     });
   }
 
+  const studentEmail = "student@unitrack.dev";
+  const existingStudent = await prisma.user.findUnique({
+    where: { email: studentEmail },
+  });
+  if (!existingStudent) {
+    await prisma.user.create({
+      data: {
+        name: "Test Student",
+        email: studentEmail,
+        passwordHash: await hashPassword("student123"),
+        role: "student",
+        batchId: batch.id,
+      },
+    });
+  }
+
   const anyCourse = await prisma.course.findFirst({ where: { batchId: batch.id } });
   if (anyCourse) {
     const existing = await prisma.announcement.findFirst({ where: { batchId: batch.id } });
