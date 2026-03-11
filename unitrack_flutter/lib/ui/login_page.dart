@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 
 import '../core/providers.dart';
 import '../main.dart';
@@ -33,8 +34,24 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       await ref
           .read(authStateNotifierProvider.notifier)
           .login(_email.text.trim(), _password.text);
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      final data = e.response?.data;
+      String msg;
+
+      if (status == 401) {
+        msg = 'Invalid email or password.';
+      } else if (status == 400 && data is Map && data['error'] is String) {
+        msg = 'Bad request: ${data['error']}';
+      } else if (status != null) {
+        msg = 'Request failed (HTTP $status).';
+      } else {
+        msg = 'Network error: ${e.message}';
+      }
+
+      setState(() => _error = msg);
     } catch (e) {
-      setState(() => _error = 'Login failed. Check backend is running.');
+      setState(() => _error = 'Unexpected error: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }

@@ -101,6 +101,55 @@ final gpaProvider = Provider<double?>((ref) {
   return totalPoints / totalCredits;
 });
 
+/// Per-course percentage used for the Grades tab UI.
+final courseGradesProvider =
+    Provider<List<({Course course, double percent})>>((ref) {
+  final courses = ref.watch(coursesProvider);
+  final timeline = ref.watch(timelineProvider);
+  final coursesData = courses.valueOrNull;
+  final timelineData = timeline.valueOrNull;
+  if (coursesData == null || timelineData == null) return const [];
+
+  final byCourse = <String, List<int>>{};
+  final weightedByCourse = <String, ({int sumWeighted, int sumWeight})>{};
+
+  for (final a in timelineData.assignments) {
+    final grade = a.gradePct;
+    if (grade == null) continue;
+    final w = a.weight ?? 0;
+    if (w > 0) {
+      final prev = weightedByCourse[a.course.id];
+      final next = (
+        sumWeighted: (prev?.sumWeighted ?? 0) + grade * w,
+        sumWeight: (prev?.sumWeight ?? 0) + w,
+      );
+      weightedByCourse[a.course.id] = next;
+    } else {
+      (byCourse[a.course.id] ??= []).add(grade);
+    }
+  }
+
+  final rows = <({Course course, double percent})>[];
+
+  for (final course in coursesData) {
+    double? pct;
+    final w = weightedByCourse[course.id];
+    if (w != null && w.sumWeight > 0) {
+      pct = w.sumWeighted / w.sumWeight;
+    } else {
+      final list = byCourse[course.id];
+      if (list != null && list.isNotEmpty) {
+        pct = list.reduce((a, b) => a + b) / list.length;
+      }
+    }
+    if (pct == null) continue;
+    rows.add((course: course, percent: pct));
+  }
+
+  rows.sort((a, b) => a.course.code.compareTo(b.course.code));
+  return rows;
+});
+
 double _pctToGpa(double pct) {
   if (pct >= 93) return 4.0;
   if (pct >= 90) return 3.7;
@@ -143,10 +192,6 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient(baseUrl: baseUrl, token: token);
 });
 
-final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AuthRepository(ref.watch(apiClientProvider));
-});
-
 class AuthStateNotifier extends Notifier<AuthState> {
   @override
   AuthState build() {
@@ -172,7 +217,8 @@ class AuthStateNotifier extends Notifier<AuthState> {
   }
 
   Future<void> login(String email, String password) async {
-    final repo = ref.read(authRepositoryProvider);
+    final baseUrl = ref.read(baseUrlProvider);
+    final repo = AuthRepository(ApiClient(baseUrl: baseUrl));
     final (token, user) = await repo.login(email: email, password: password);
     await ref.read(tokenStoreProvider).writeToken(token);
     state = AuthState(token: token, user: user);

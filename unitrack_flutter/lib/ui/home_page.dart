@@ -350,27 +350,43 @@ class _AddAssignmentSheetState extends ConsumerState<_AddAssignmentSheet> {
   }
 }
 
-class _GradesTab extends StatelessWidget {
+class _GradesTab extends ConsumerWidget {
   const _GradesTab();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = UniTrackColors.of(context);
     final text = Theme.of(context).textTheme;
 
-    final rows = <({String title, String subtitle, String grade, _DotColorKey dot})>[
-      (title: 'CS 301', subtitle: 'Data Structures & Algorithms', grade: '92% · 4cr', dot: _DotColorKey.teal),
-      (title: 'MATH 201', subtitle: 'Calculus II', grade: '88% · 4cr', dot: _DotColorKey.yellow),
-      (title: 'ENG 102', subtitle: 'Academic Writing', grade: '90% · 3cr', dot: _DotColorKey.terracotta),
-      (title: 'PHYS 150', subtitle: 'Physics Mechanics', grade: '84% · 4cr', dot: _DotColorKey.slate),
-    ];
+    final rows = ref.watch(courseGradesProvider);
+    if (rows.isEmpty) {
+      return Center(
+        child: Text(
+          'No graded items yet.',
+          style: text.bodyMedium?.copyWith(
+            color: colors.mutedForeground,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
 
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 92),
       itemCount: rows.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
-        final r = rows[index];
+        final row = rows[index];
+        final course = row.course;
+        final pct = row.percent;
+        final gradeLabel = '${pct.toStringAsFixed(0)}% · ${course.credits}cr';
+        final dotKey = switch (course.colorKey) {
+          'yellow' => _DotColorKey.yellow,
+          'teal' => _DotColorKey.teal,
+          'terracotta' => _DotColorKey.terracotta,
+          'slate' => _DotColorKey.slate,
+          _ => _DotColorKey.slate,
+        };
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
@@ -392,7 +408,7 @@ class _GradesTab extends StatelessWidget {
                 height: 10,
                 margin: const EdgeInsets.only(right: 12),
                 decoration: BoxDecoration(
-                  color: _dotColor(context, r.dot),
+                  color: _dotColor(context, dotKey),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -401,12 +417,12 @@ class _GradesTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      r.title,
+                      course.code,
                       style: text.titleSmall?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      r.subtitle,
+                      course.title,
                       style: text.bodySmall?.copyWith(
                         color: colors.mutedForeground,
                         fontWeight: FontWeight.w600,
@@ -417,7 +433,7 @@ class _GradesTab extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                r.grade,
+                gradeLabel,
                 style: text.labelLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: colors.mutedForeground,
