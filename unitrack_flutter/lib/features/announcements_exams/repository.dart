@@ -32,6 +32,28 @@ class AnnouncementsExamsRepository {
     await _api.dio.delete('/batches/$batchId/announcements/$id');
   }
 
+  Future<({String summary, List<String> keyPoints, List<String> dates})?>
+      summarizeAnnouncement({
+    required String batchId,
+    required String id,
+  }) async {
+    try {
+      final res = await _api.dio.post<Map<String, dynamic>>(
+        '/batches/$batchId/announcements/$id/summary',
+      );
+      final data = res.data?['summary'] as Map<String, dynamic>?;
+      if (data == null) return null;
+      final summary = data['summary'] as String? ?? '';
+      final keyPoints =
+          (data['keyPoints'] as List?)?.cast<String>() ?? const <String>[];
+      final dates =
+          (data['dates'] as List?)?.cast<String>() ?? const <String>[];
+      return (summary: summary, keyPoints: keyPoints, dates: dates);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<List<Exam>> listExams(String batchId) async {
     final res =
         await _api.dio.get<Map<String, dynamic>>('/batches/$batchId/exams');

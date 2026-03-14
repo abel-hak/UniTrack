@@ -131,6 +131,7 @@ Environment variables are defined in `backend/.env.example`:
 - **`PORT`** – default `3001`
 - **`JWT_SECRET`** – must be at least 16 characters (required for signing tokens)
 - **`JWT_EXPIRES_IN`** – default `7d`
+ - **`GROQ_API_KEY`** – optional; set this to enable AI-powered announcement summaries (see section 8)
 
 You **must** set a strong `JWT_SECRET` before using the app in any non-local environment.
 
@@ -208,7 +209,25 @@ Most endpoints (everything except `/health`, `/batches`, `POST /auth/register`, 
 
 ---
 
-## 8. Database notes
+## 8. AI-powered features
+
+### 8.1 Announcement summaries ("AI TL;DR")
+
+If `GROQ_API_KEY` is set in `backend/.env`, the backend calls the Groq API and exposes:
+
+- `POST /batches/:batchId/announcements/:id/summary`
+
+The Flutter app surfaces this as an **“AI TL;DR”** button on each announcement card. It returns:
+
+- a short summary of the announcement
+- key bullet points
+- a list of important dates mentioned (if any)
+
+If `GROQ_API_KEY` is not configured or the AI call fails, the app simply shows a friendly error instead.
+
+---
+
+## 9. Database notes
 
 - The current **Prisma datasource is SQLite** by default, using `DATABASE_URL` from `.env`.
 - A **Postgres Docker setup** is available in `backend/docker-compose.yml` if you want to switch databases (you’ll need to update `DATABASE_URL` accordingly and re-run migrations).

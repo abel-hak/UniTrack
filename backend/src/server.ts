@@ -15,6 +15,7 @@ import {
   verifyPassword,
 } from "./lib/auth";
 import { jsonError } from "./lib/http";
+import { summarizeAnnouncementText } from "./lib/ai";
 import {
   announcementCreateSchema,
   assignmentCreateSchema,
@@ -312,6 +313,42 @@ app.post("/batches/:batchId/announcements", async (req, res) => {
   });
   res.status(201).json({ announcement: created });
 });
+
+app.post(
+  "/batches/:batchId/announcements/:id/summary",
+  async (req, res) => {
+    const user = await requireAuth(req);
+    if (!user) return jsonError(res, 401, "Unauthorized");
+    if (req.params.batchId !== user.batchId) {
+      return jsonError(res, 403, "Forbidden");
+    }
+
+    const announcement = await prisma.announcement.findUnique({
+      where: { id: req.params.id },
+      include: { author: true },
+    });
+    if (!announcement) return jsonError(res, 404, "Not found");
+    if (announcement.batchId !== user.batchId) {
+      return jsonError(res, 403, "Forbidden");
+    }
+
+    try {
+      const result = await summarizeAnnouncementText(
+        announcement.title,
+        announcement.body,
+      );
+      res.json({ summary: result });
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(err);
+      return jsonError(
+        res,
+        500,
+        "Failed to summarize announcement. Please try again later.",
+      );
+    }
+  },
+);
 
 app.delete("/batches/:batchId/announcements/:id", async (req, res) => {
   const user = await requireAuth(req);

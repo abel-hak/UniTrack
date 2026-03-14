@@ -591,8 +591,142 @@ class _AnnouncementCard extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => _showSummaryDialog(context, item),
+              icon: const Icon(Icons.auto_awesome, size: 16),
+              label: const Text('AI TL;DR'),
+              style: TextButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+                foregroundColor: colors.mutedForeground,
+              ),
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showSummaryDialog(
+      BuildContext context, Announcement announcement) async {
+    final ref = ProviderScope.containerOf(context, listen: false);
+    final auth = ref.read(authStateNotifierProvider).user;
+    if (auth == null) return;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        final colors = UniTrackColors.of(ctx);
+        final text = Theme.of(ctx).textTheme;
+
+        return FutureBuilder<
+            ({String summary, List<String> keyPoints, List<String> dates})?>(
+          future: ref
+              .read(announcementsExamsRepositoryProvider)
+              .summarizeAnnouncement(
+                batchId: auth.batchId,
+                id: announcement.id,
+              ),
+          builder: (context, snapshot) {
+            Widget body;
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              body = const SizedBox(
+                height: 60,
+                child: Center(
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              );
+            } else if (snapshot.hasError || snapshot.data == null) {
+              body = Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'Unable to generate a summary right now.',
+                  style: text.bodyMedium?.copyWith(
+                    color: colors.mutedForeground,
+                  ),
+                ),
+              );
+            } else {
+              final result = snapshot.data!;
+              body = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (result.summary.isNotEmpty) ...[
+                    Text(
+                      result.summary,
+                      style: text.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (result.keyPoints.isNotEmpty) ...[
+                    Text(
+                      'Key points',
+                      style: text.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    ...result.keyPoints.map(
+                      (p) => Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('• '),
+                            Expanded(
+                              child: Text(
+                                p,
+                                style: text.bodySmall,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  if (result.dates.isNotEmpty) ...[
+                    Text(
+                      'Important dates',
+                      style: text.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    ...result.dates.map(
+                      (d) => Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Text(
+                          d,
+                          style: text.bodySmall,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            }
+
+            return AlertDialog(
+              title: const Text('AI summary'),
+              content: body,
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Close'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
