@@ -15,7 +15,7 @@ import {
   verifyPassword,
 } from "./lib/auth";
 import { jsonError } from "./lib/http";
-import { summarizeAnnouncementText } from "./lib/ai";
+import { summarizeAnnouncementText, generateTodayPlan } from "./lib/ai";
 import {
   announcementCreateSchema,
   assignmentCreateSchema,
@@ -480,6 +480,74 @@ app.get("/timeline", async (req, res) => {
   });
 
   res.json({ assignments, announcements, exams });
+});
+
+app.post("/ai/today-plan", async (req, res) => {
+  const user = await requireAuth(req);
+  if (!user) return jsonError(res, 401, "Unauthorized");
+
+  const now = new Date();
+  const to = new Date(now);
+  to.setDate(to.getDate() + 7);
+
+  const [assignments, exams] = await Promise.all([
+    prisma.assignment.findMany({
+      where: {
+        userId: user.id,
+        status: { in: ["todo", "late"] },
+        dueAt: { gte: now, lte: to },
+      },
+      include: { course: { select: { code: true } } },
+      orderBy: { dueAt: "asc" },
+      take: 30,
+    }),
+    prisma.exam.findMany({
+      where: {
+        batchId: user.batchId,
+        startsAt: { gte: now, lte: to },
+      },
+      include: { course: { select: { code: true } } },
+      orderBy: { startsAt: "asc" },
+      take: 20,
+    }),
+  ]);
+
+  if (assignments.length === 0 && exams.length === 0) {
+    return res.json({
+      plan: {
+        items: [],
+        note: "You have no upcoming assignments or exams in the next week. This is a good time to review notes or work ahead at your own pace.",
+      },
+    });
+  }
+
+  try {
+    const result = await generateTodayPlan({
+      assignments: assignments.map((a) => ({
+        id: a.id,
+        title: a.title,
+        courseCode: a.course.code,
+        dueAt: a.dueAt.toISOString(),
+        status: a.status,
+      })),
+      exams: exams.map((e) => ({
+        id: e.id,
+        kind: e.kind,
+        courseCode: e.course.code,
+        startsAt: e.startsAt.toISOString(),
+      })),
+    });
+
+    res.json({ plan: result });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(err);
+    return jsonError(
+      res,
+      500,
+      "Failed to generate a plan for today. Please try again later.",
+    );
+  }
 });
 
 app.listen(port, () => {

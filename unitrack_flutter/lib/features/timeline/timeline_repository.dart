@@ -30,4 +30,19 @@ class TimelineRepository {
       exams: exams,
     );
   }
+
+  Future<({List<String> items, String note})?> todayPlan() async {
+    try {
+      final res = await _api.dio.post<Map<String, dynamic>>('/ai/today-plan');
+      final data = res.data?['plan'] as Map<String, dynamic>?;
+      if (data == null) return null;
+      final items =
+          (data['items'] as List?)?.map((e) => (e as Map)['title'] as String).toList() ??
+              const <String>[];
+      final note = data['note'] as String? ?? '';
+      return (items: items, note: note);
+    } catch (_) {
+      return null;
+    }
+  }
 }

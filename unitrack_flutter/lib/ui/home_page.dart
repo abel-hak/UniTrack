@@ -1149,7 +1149,11 @@ class _TimelineTab extends ConsumerWidget {
                 child: ListView(
                   padding:
                       const EdgeInsets.fromLTRB(16, 0, 16, 92),
-                  children: groups,
+                  children: [
+                    const _TodayPlanCard(),
+                    const SizedBox(height: 12),
+                    ...groups,
+                  ],
                 ),
               );
             },
@@ -1679,6 +1683,204 @@ class _GpaPill extends StatelessWidget {
               fontWeight: FontWeight.w800,
               letterSpacing: -0.2,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TodayPlanCard extends ConsumerStatefulWidget {
+  const _TodayPlanCard();
+
+  @override
+  ConsumerState<_TodayPlanCard> createState() => _TodayPlanCardState();
+}
+
+class _TodayPlanCardState extends ConsumerState<_TodayPlanCard> {
+  bool _loading = false;
+
+  Future<void> _showPlanDialog(BuildContext context) async {
+    setState(() => _loading = true);
+    try {
+      final repo = ref.read(timelineRepositoryProvider);
+      final result = await repo.todayPlan();
+
+      if (!mounted) return;
+
+      showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (ctx) {
+          final colors = UniTrackColors.of(ctx);
+          final text = Theme.of(ctx).textTheme;
+
+          if (result == null) {
+            return AlertDialog(
+              title: const Text('AI plan'),
+              content: Text(
+                'Unable to generate a plan right now.',
+                style: text.bodyMedium
+                    ?.copyWith(color: colors.mutedForeground),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Close'),
+                ),
+              ],
+            );
+          }
+
+          final items = result.items;
+          final note = result.note;
+
+          return AlertDialog(
+            title: Row(
+              children: [
+                const Text('Plan for today'),
+                const SizedBox(width: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: colors.mutedForeground.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'AI-generated',
+                    style: text.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
+                      color: colors.mutedForeground,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (items.isEmpty)
+                    Text(
+                      'You have no urgent items in the next week.',
+                      style: text.bodyMedium,
+                    )
+                  else ...[
+                    ...items.map(
+                      (t) => Padding(
+                        padding:
+                            const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('• '),
+                            Expanded(
+                              child: Text(
+                                t,
+                                style: text.bodySmall,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (note.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      note,
+                      style: text.bodySmall?.copyWith(
+                        color: colors.mutedForeground,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        },
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = UniTrackColors.of(context);
+    final text = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colors.border),
+        boxShadow: [
+          BoxShadow(
+            color: colors.shadowCard,
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: colors.border.withValues(alpha: 0.35),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.auto_awesome,
+              size: 16,
+              color: Colors.black.withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'What should I work on today?',
+                  style: text.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Ask AI to turn your upcoming assignments and exams into a short, focused plan for today.',
+                  style: text.bodySmall?.copyWith(
+                    color: colors.mutedForeground,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          TextButton(
+            onPressed: _loading ? null : () => _showPlanDialog(context),
+            child: _loading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Ask AI'),
           ),
         ],
       ),
