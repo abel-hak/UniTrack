@@ -325,11 +325,15 @@ app.post(
 
     const announcement = await prisma.announcement.findUnique({
       where: { id: req.params.id },
-      include: { author: true },
     });
     if (!announcement) return jsonError(res, 404, "Not found");
     if (announcement.batchId !== user.batchId) {
       return jsonError(res, 403, "Forbidden");
+    }
+
+    // If we have a cached summary, return it directly.
+    if (announcement.summaryCache) {
+      return res.json({ summary: announcement.summaryCache });
     }
 
     try {
@@ -337,6 +341,13 @@ app.post(
         announcement.title,
         announcement.body,
       );
+
+      // Persist the summary for future calls.
+      await prisma.announcement.update({
+        where: { id: announcement.id },
+        data: { summaryCache: result as any },
+      });
+
       res.json({ summary: result });
     } catch (err) {
       // eslint-disable-next-line no-console

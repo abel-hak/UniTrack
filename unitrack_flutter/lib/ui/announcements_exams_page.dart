@@ -594,15 +594,38 @@ class _AnnouncementCard extends StatelessWidget {
           const SizedBox(height: 6),
           Align(
             alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: () => _showSummaryDialog(context, item),
-              icon: const Icon(Icons.auto_awesome, size: 16),
-              label: const Text('AI TL;DR'),
-              style: TextButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
-                foregroundColor: colors.mutedForeground,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextButton.icon(
+                  onPressed: () => _showSummaryDialog(context, item),
+                  icon: const Icon(Icons.auto_awesome, size: 16),
+                  label: const Text('AI TL;DR'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 0, vertical: 4),
+                    foregroundColor: colors.mutedForeground,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color:
+                        colors.mutedForeground.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'AI',
+                    style: text.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
+                      color: colors.mutedForeground,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -715,7 +738,28 @@ class _AnnouncementCard extends StatelessWidget {
             }
 
             return AlertDialog(
-              title: const Text('AI summary'),
+              title: Row(
+                children: [
+                  const Text('AI summary'),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: colors.mutedForeground.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      'AI-generated',
+                      style: text.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                        color: colors.mutedForeground,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               content: body,
               actions: [
                 TextButton(

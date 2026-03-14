@@ -113,10 +113,11 @@ model Assignment {
 }
 
 model Announcement {
-  id        String   @id @default(cuid())
-  title     String
-  body      String
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  title        String
+  body         String
+  createdAt    DateTime @default(now())
+  summaryCache Json?
 
   batchId String
   batch   Batch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
