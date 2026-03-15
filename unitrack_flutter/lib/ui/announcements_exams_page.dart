@@ -38,9 +38,13 @@ class AnnouncementsExamsPage extends ConsumerWidget {
             ],
           ),
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _openFabSheet(context, ref),
-          child: const Icon(Icons.add),
+        floatingActionButton: Builder(
+          builder: (fabContext) {
+            return FloatingActionButton(
+              onPressed: () => _openFabSheet(fabContext, ref),
+              child: const Icon(Icons.add),
+            );
+          },
         ),
         body: const TabBarView(
           children: [
