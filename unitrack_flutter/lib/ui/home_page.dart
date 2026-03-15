@@ -1138,15 +1138,15 @@ class _TimelineTab extends ConsumerWidget {
                         vertical: 9,
                       ),
                       decoration: BoxDecoration(
-                        color: isAll
-                            ? Theme.of(context).colorScheme.surface
-                            : (selected
-                                ? Colors.black.withValues(alpha: 0.88)
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .surface),
+                        color: (!isAll && selected)
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: colors.border),
+                        border: Border.all(
+                          color: (!isAll && selected)
+                              ? Theme.of(context).colorScheme.primary
+                              : colors.border,
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1156,7 +1156,7 @@ class _TimelineTab extends ConsumerWidget {
                               width: 8,
                               height: 8,
                               decoration: BoxDecoration(
-                                color: dotColor,
+                                color: selected ? Colors.white : dotColor,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -1168,8 +1168,7 @@ class _TimelineTab extends ConsumerWidget {
                               fontWeight: FontWeight.w600,
                               color: (!isAll && selected)
                                   ? Colors.white
-                                  : Colors.black
-                                      .withValues(alpha: 0.82),
+                                  : Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ],
@@ -1575,27 +1574,20 @@ class _TimelineItemCard extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.1) : colors.border.withValues(alpha: 0.8),
+          color: isDark ? colors.border.withValues(alpha: 0.7) : colors.border.withValues(alpha: 0.8),
         ),
         boxShadow: [
-          if (isDark)
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            )
-          else ...[
-            BoxShadow(
-              color: colors.shadowCard,
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
+          BoxShadow(
+            color: colors.shadowCard,
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+          if (!isDark)
             BoxShadow(
               color: accentColor.withValues(alpha: 0.06),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
-          ],
         ],
       ),
       child: Row(
@@ -1791,13 +1783,11 @@ class _SegmentTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = UniTrackColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       height: 40,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF262626) : Theme.of(context).colorScheme.secondary,
+        color: Theme.of(context).colorScheme.secondary,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: colors.border),
       ),
@@ -2044,7 +2034,7 @@ class _TodayPlanCardState extends ConsumerState<_TodayPlanCard> {
             child: Icon(
               Icons.auto_awesome,
               size: 16,
-              color: Colors.black.withValues(alpha: 0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(width: 10),

@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'core/providers.dart';
-
 import 'core/notifications/notification_service.dart';
 import 'core/providers.dart';
 import 'ui/home_page.dart';
@@ -89,20 +87,20 @@ class UniTrackApp extends ConsumerWidget {
       ],
     );
 
-    // Dark theme: 3 gray levels only — background, cards, elevated
-    const darkBackground = Color(0xFF121212);
-    const darkForeground = Color(0xFFF0F1F3);
-    const darkCard = Color(0xFF1E1E1E);
-    const darkElevated = Color(0xFF262626);
-    const darkMuted = Color(0xFFB8BCC4);
-    const darkBorder = Color(0xFF40444B);
+    // Tailwind Slate scale — proven high-contrast dark palette
+    const darkBackground = Color(0xFF0F172A);   // slate-900
+    const darkForeground = Color(0xFFF1F5F9);   // slate-100
+    const darkCard = Color(0xFF1E293B);         // slate-800 (clearly lighter)
+    const darkElevated = Color(0xFF334155);      // slate-700 (chips, segments)
+    const darkMuted = Color(0xFF94A3B8);        // slate-400
+    const darkBorder = Color(0xFF475569);       // slate-600 (very visible)
 
     final darkTheme = ThemeData(
       useMaterial3: true,
       scaffoldBackgroundColor: darkBackground,
       colorScheme: const ColorScheme.dark(
-        primary: Color(0xFF3B82F6),   // Softer blue for FAB/actions
-        onPrimary: Colors.white,
+        primary: Color(0xFF60A5FA),   // blue-400 — bright on dark
+        onPrimary: Color(0xFF0F172A),
         secondary: darkElevated,
         onSecondary: darkForeground,
         surface: darkCard,
@@ -125,9 +123,9 @@ class UniTrackApp extends ConsumerWidget {
       inputDecorationTheme: InputDecorationTheme(
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
+          borderSide: const BorderSide(color: Color(0xFF60A5FA), width: 2),
         ),
-        focusColor: const Color(0xFF3B82F6),
+        focusColor: const Color(0xFF60A5FA),
         filled: true,
         fillColor: darkCard,
       ),
@@ -142,14 +140,14 @@ class UniTrackApp extends ConsumerWidget {
         const UniTrackColors(
           mutedForeground: darkMuted,
           border: darkBorder,
-          shadowCard: Color(0x18000000),
-          shadowElevated: Color(0x25000000),
+          shadowCard: Color(0x50000000),
+          shadowElevated: Color(0x60000000),
           shadowFab: Color(0x503B82F6),
-          courseYellow: Color(0xFFE5B800),
-          courseTeal: Color(0xFF5A9AA6),
-          courseTerracotta: Color(0xFFD97A5A),
-          courseSlate: Color(0xFF8A95A0),
-          timelineLine: Color(0xFF40444B),
+          courseYellow: Color(0xFFFBBF24),
+          courseTeal: Color(0xFF2DD4BF),
+          courseTerracotta: Color(0xFFFB923C),
+          courseSlate: Color(0xFF94A3B8),
+          timelineLine: Color(0xFF475569),
         ),
       ],
     );

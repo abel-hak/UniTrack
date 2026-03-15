@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../main.dart';
-
 /// Dialog with rounded corners, optional leading icon, consistent padding and primary action.
 class StyledDialog extends StatelessWidget {
   final Widget title;
