@@ -43,7 +43,6 @@ class _HomePageState extends ConsumerState<HomePage>
     }
     final auth = authState.user!;
     final coursesAsync = ref.watch(coursesProvider);
-    final isPrivileged = auth.role == 'admin' || auth.role == 'publisher';
 
     return Scaffold(
       body: SafeArea(
@@ -86,7 +85,7 @@ class _HomePageState extends ConsumerState<HomePage>
                           _GpaPill(
                               value: _formatGpa(ref.watch(gpaProvider))),
                           const SizedBox(width: 10),
-                          _HeaderMenu(isPrivileged: isPrivileged),
+                          const _HeaderMenu(),
                         ],
                       ),
                     ),
@@ -141,7 +140,26 @@ class _HomePageState extends ConsumerState<HomePage>
   Future<void> _openAddAssignmentSheet(BuildContext context) async {
     final courses =
         ref.read(coursesProvider).valueOrNull ?? const <Course>[];
-    if (courses.isEmpty) return;
+    if (courses.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Add at least one course first'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        final auth = ref.read(authStateNotifierProvider).user;
+        if (auth != null) {
+          showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => _AddCourseSheet(batchId: auth.batchId),
+          ).then((_) => ref.invalidate(coursesProvider));
+        }
+      }
+      return;
+    }
 
     await showModalBottomSheet<void>(
       context: context,
@@ -158,9 +176,7 @@ class _HomePageState extends ConsumerState<HomePage>
 // ─── Header popup menu ───────────────────────────────────────
 
 class _HeaderMenu extends ConsumerWidget {
-  final bool isPrivileged;
-
-  const _HeaderMenu({required this.isPrivileged});
+  const _HeaderMenu();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -212,17 +228,16 @@ class _HeaderMenu extends ConsumerWidget {
               ],
             ),
           ),
-          if (isPrivileged)
-            const PopupMenuItem(
-              value: 'courses',
-              child: Row(
-                children: [
-                  Icon(Icons.school_outlined, size: 18),
-                  SizedBox(width: 10),
-                  Text('Add Course'),
-                ],
-              ),
+          const PopupMenuItem(
+            value: 'courses',
+            child: Row(
+              children: [
+                Icon(Icons.school_outlined, size: 18),
+                SizedBox(width: 10),
+                Text('Add Course'),
+              ],
             ),
+          ),
           const PopupMenuItem(
             value: 'profile',
             child: Row(
@@ -305,6 +320,13 @@ class _AddCourseSheetState extends ConsumerState<_AddCourseSheet> {
             instructor: inst.isNotEmpty ? inst : null,
           );
       if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        final msg = e is Exception ? e.toString().replaceFirst('Exception: ', '') : 'Failed to add course';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+        );
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -528,6 +550,13 @@ class _AddAssignmentSheetState extends ConsumerState<_AddAssignmentSheet> {
         dueAt: _dueAt,
       );
       if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        final msg = e is Exception ? e.toString().replaceFirst('Exception: ', '') : 'Failed to add assignment';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+        );
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }

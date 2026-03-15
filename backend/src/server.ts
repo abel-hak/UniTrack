@@ -161,7 +161,6 @@ app.get("/courses", async (req, res) => {
 app.post("/courses", async (req, res) => {
   const user = await requireAuth(req);
   if (!user) return jsonError(res, 401, "Unauthorized");
-  if (denyIfNoRole(res, requireRole(user, ["admin", "publisher"]))) return;
 
   const parsed = courseCreateSchema.safeParse(req.body);
   if (!parsed.success) return jsonError(res, 400, "Invalid payload");
@@ -176,7 +175,6 @@ app.post("/courses", async (req, res) => {
 app.patch("/courses/:id", async (req, res) => {
   const user = await requireAuth(req);
   if (!user) return jsonError(res, 401, "Unauthorized");
-  if (denyIfNoRole(res, requireRole(user, ["admin", "publisher"]))) return;
 
   const parsed = courseUpdateSchema.safeParse(req.body);
   if (!parsed.success) return jsonError(res, 400, "Invalid payload");
@@ -397,7 +395,6 @@ app.post("/batches/:batchId/exams", async (req, res) => {
   const user = await requireAuth(req);
   if (!user) return jsonError(res, 401, "Unauthorized");
   if (req.params.batchId !== user.batchId) return jsonError(res, 403, "Forbidden");
-  if (denyIfNoRole(res, requireRole(user, ["admin", "publisher"]))) return;
 
   const parsed = examCreateSchema.safeParse(req.body);
   if (!parsed.success) return jsonError(res, 400, "Invalid payload");
@@ -427,7 +424,6 @@ app.delete("/batches/:batchId/exams/:id", async (req, res) => {
   const user = await requireAuth(req);
   if (!user) return jsonError(res, 401, "Unauthorized");
   if (req.params.batchId !== user.batchId) return jsonError(res, 403, "Forbidden");
-  if (denyIfNoRole(res, requireRole(user, ["admin", "publisher"]))) return;
 
   const existing = await prisma.exam.findUnique({
     where: { id: req.params.id },

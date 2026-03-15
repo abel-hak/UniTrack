@@ -41,10 +41,13 @@ async function main() {
   }
 
   const courses = [
-    { code: "CS 301", title: "Data Structures & Algorithms", credits: 4, colorKey: "teal" },
-    { code: "MATH 201", title: "Calculus II", credits: 4, colorKey: "yellow" },
-    { code: "ENG 102", title: "Academic Writing", credits: 3, colorKey: "terracotta" },
-    { code: "PHYS 150", title: "Physics Mechanics", credits: 4, colorKey: "slate" },
+    { code: "CoSc4022", title: "Mobile Application Development", credits: 3, colorKey: "teal" },
+    { code: "CoSc4012", title: "Computer Security", credits: 3, colorKey: "yellow" },
+    { code: "CoSc4412", title: "Real Time and Embedded Systems", credits: 3, colorKey: "terracotta" },
+    { code: "CoSc4112", title: "Final Year Project II", credits: 3, colorKey: "slate" },
+    { code: "Hist. 1012", title: "History of Ethiopia and the Horn", credits: 3, colorKey: "teal" },
+    { code: "CoSc4212", title: "Compiler Design", credits: 3, colorKey: "yellow" },
+    { code: "CoSc4312", title: "Complexity Theory", credits: 3, colorKey: "terracotta" },
   ] as const;
 
   for (const c of courses) {
@@ -56,11 +59,11 @@ async function main() {
   }
 
   const studentEmail = "student@unitrack.dev";
-  const existingStudent = await prisma.user.findUnique({
+  let student = await prisma.user.findUnique({
     where: { email: studentEmail },
   });
-  if (!existingStudent) {
-    await prisma.user.create({
+  if (!student) {
+    student = await prisma.user.create({
       data: {
         name: "Test Student",
         email: studentEmail,
@@ -69,6 +72,44 @@ async function main() {
         batchId: batch.id,
       },
     });
+  }
+
+  const courseList = await prisma.course.findMany({
+    where: { batchId: batch.id },
+    orderBy: { code: "asc" },
+  });
+
+  const now = new Date();
+  const sampleAssignments = [
+    { courseCode: "CoSc4022", title: "Flutter lab report", type: "assignment" as const, daysFromNow: 3 },
+    { courseCode: "CoSc4012", title: "Security quiz 1", type: "quiz" as const, daysFromNow: 5 },
+    { courseCode: "CoSc4412", title: "Embedded project proposal", type: "project" as const, daysFromNow: 7 },
+    { courseCode: "CoSc4112", title: "FYP II progress report", type: "assignment" as const, daysFromNow: 10 },
+    { courseCode: "Hist. 1012", title: "Essay draft", type: "assignment" as const, daysFromNow: 4 },
+    { courseCode: "CoSc4212", title: "Parser assignment", type: "assignment" as const, daysFromNow: 6 },
+    { courseCode: "CoSc4312", title: "Problem set 2", type: "assignment" as const, daysFromNow: 2 },
+  ];
+
+  const existingAssignments = await prisma.assignment.count({
+    where: { userId: student!.id },
+  });
+  if (existingAssignments === 0) {
+    for (const s of sampleAssignments) {
+      const course = courseList.find((c) => c.code === s.courseCode);
+      if (!course) continue;
+      const dueAt = new Date(now);
+      dueAt.setDate(dueAt.getDate() + s.daysFromNow);
+      await prisma.assignment.create({
+        data: {
+          userId: student.id,
+          courseId: course.id,
+          title: s.title,
+          type: s.type,
+          dueAt,
+          status: "todo",
+        },
+      });
+    }
   }
 
   const anyCourse = await prisma.course.findFirst({ where: { batchId: batch.id } });

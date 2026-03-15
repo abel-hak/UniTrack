@@ -18,7 +18,6 @@ class AnnouncementsExamsPage extends ConsumerWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final auth = authState.user!;
-    final isPublisher = auth.role == 'admin' || auth.role == 'publisher';
 
     return DefaultTabController(
       length: 2,
@@ -38,12 +37,10 @@ class AnnouncementsExamsPage extends ConsumerWidget {
             ],
           ),
         ),
-        floatingActionButton: isPublisher
-            ? FloatingActionButton(
-                onPressed: () => _openFabSheet(context, ref),
-                child: const Icon(Icons.add),
-              )
-            : null,
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _openFabSheet(context, ref),
+          child: const Icon(Icons.add),
+        ),
         body: const TabBarView(
           children: [
             _AnnouncementsTab(),
@@ -56,7 +53,10 @@ class AnnouncementsExamsPage extends ConsumerWidget {
 
   void _openFabSheet(BuildContext context, WidgetRef ref) {
     final tabIndex = DefaultTabController.of(context).index;
-    if (tabIndex == 0) {
+    final auth = ref.read(authStateNotifierProvider).user!;
+    final canPostAnnouncements = auth.role == 'admin' || auth.role == 'publisher';
+    // Students can only add exams; admin/publisher can add announcement or exam depending on tab.
+    if (canPostAnnouncements && tabIndex == 0) {
       _openAnnouncementSheet(context, ref);
     } else {
       _openExamSheet(context, ref);
@@ -785,7 +785,6 @@ class _ExamsTab extends ConsumerWidget {
     final async = ref.watch(examsProvider);
     final colors = UniTrackColors.of(context);
     final text = Theme.of(context).textTheme;
-    final isPrivileged = _isPrivileged(ref);
 
     return async.when(
       data: (items) {
@@ -820,7 +819,7 @@ class _ExamsTab extends ConsumerWidget {
                 padding: const EdgeInsets.only(bottom: 10),
                 child: _ExamCard(
                   item: e,
-                  canDelete: isPrivileged,
+                  canDelete: true,
                   onDelete: () => _deleteExam(context, ref, e),
                 ),
               );
