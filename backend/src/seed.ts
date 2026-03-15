@@ -40,6 +40,23 @@ async function main() {
     });
   }
 
+  const allowedCodes = [
+    "CoSc4022",
+    "CoSc4012",
+    "CoSc4412",
+    "CoSc4112",
+    "Hist. 1012",
+    "CoSc4212",
+    "CoSc4312",
+  ] as const;
+
+  await prisma.course.deleteMany({
+    where: {
+      batchId: batch.id,
+      code: { notIn: [...allowedCodes] },
+    },
+  });
+
   const courses = [
     { code: "CoSc4022", title: "Mobile Application Development", credits: 3, colorKey: "teal" },
     { code: "CoSc4012", title: "Computer Security", credits: 3, colorKey: "yellow" },
@@ -80,21 +97,28 @@ async function main() {
   });
 
   const now = new Date();
-  const sampleAssignments = [
-    { courseCode: "CoSc4022", title: "Flutter lab report", type: "assignment" as const, daysFromNow: 3 },
-    { courseCode: "CoSc4012", title: "Security quiz 1", type: "quiz" as const, daysFromNow: 5 },
-    { courseCode: "CoSc4412", title: "Embedded project proposal", type: "project" as const, daysFromNow: 7 },
-    { courseCode: "CoSc4112", title: "FYP II progress report", type: "assignment" as const, daysFromNow: 10 },
-    { courseCode: "Hist. 1012", title: "Essay draft", type: "assignment" as const, daysFromNow: 4 },
-    { courseCode: "CoSc4212", title: "Parser assignment", type: "assignment" as const, daysFromNow: 6 },
-    { courseCode: "CoSc4312", title: "Problem set 2", type: "assignment" as const, daysFromNow: 2 },
+  const sampleItems: Array<{ courseCode: string; title: string; type: "assignment" | "quiz" | "project"; daysFromNow: number }> = [
+    { courseCode: "CoSc4022", title: "Flutter lab report", type: "assignment", daysFromNow: 3 },
+    { courseCode: "CoSc4022", title: "Mobile quiz 1", type: "quiz", daysFromNow: 5 },
+    { courseCode: "CoSc4012", title: "Security quiz 1", type: "quiz", daysFromNow: 5 },
+    { courseCode: "CoSc4012", title: "Cryptography assignment", type: "assignment", daysFromNow: 8 },
+    { courseCode: "CoSc4412", title: "Embedded project proposal", type: "project", daysFromNow: 7 },
+    { courseCode: "CoSc4412", title: "RTOS quiz", type: "quiz", daysFromNow: 4 },
+    { courseCode: "CoSc4112", title: "FYP II progress report", type: "assignment", daysFromNow: 10 },
+    { courseCode: "CoSc4112", title: "Final report draft", type: "assignment", daysFromNow: 14 },
+    { courseCode: "Hist. 1012", title: "Essay draft", type: "assignment", daysFromNow: 4 },
+    { courseCode: "Hist. 1012", title: "Midterm quiz", type: "quiz", daysFromNow: 6 },
+    { courseCode: "CoSc4212", title: "Parser assignment", type: "assignment", daysFromNow: 6 },
+    { courseCode: "CoSc4212", title: "Lexer quiz", type: "quiz", daysFromNow: 3 },
+    { courseCode: "CoSc4312", title: "Problem set 2", type: "assignment", daysFromNow: 2 },
+    { courseCode: "CoSc4312", title: "Complexity quiz", type: "quiz", daysFromNow: 5 },
   ];
 
   const existingAssignments = await prisma.assignment.count({
     where: { userId: student!.id },
   });
   if (existingAssignments === 0) {
-    for (const s of sampleAssignments) {
+    for (const s of sampleItems) {
       const course = courseList.find((c) => c.code === s.courseCode);
       if (!course) continue;
       const dueAt = new Date(now);

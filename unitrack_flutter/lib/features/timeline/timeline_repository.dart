@@ -10,25 +10,39 @@ class TimelineRepository {
       '/timeline',
       queryParameters: {if (courseId != null) 'courseId': courseId},
     );
-    final data = res.data!;
-    final assignments = (data['assignments'] as List)
-        .cast<Map<String, dynamic>>()
-        .map(TimelineAssignment.fromJson)
-        .toList();
-    final announcements = (data['announcements'] as List)
-        .cast<Map<String, dynamic>>()
-        .map(TimelineAnnouncement.fromJson)
-        .toList();
-    final exams = (data['exams'] as List?)
-            ?.cast<Map<String, dynamic>>()
-            .map(TimelineExam.fromJson)
-            .toList() ??
-        const [];
+    final data = res.data;
+    if (data == null) {
+      return const TimelineBundle(
+        assignments: [],
+        announcements: [],
+        exams: [],
+      );
+    }
+    final rawAssignments = data['assignments'];
+    final rawAnnouncements = data['announcements'];
+    final rawExams = data['exams'];
+    final assignments = _parseList(rawAssignments, TimelineAssignment.fromJson);
+    final announcements = _parseList(rawAnnouncements, TimelineAnnouncement.fromJson);
+    final exams = _parseList(rawExams, TimelineExam.fromJson);
     return TimelineBundle(
       assignments: assignments,
       announcements: announcements,
       exams: exams,
     );
+  }
+
+  static List<T> _parseList<T>(dynamic raw, T Function(Map<String, dynamic>) fromJson) {
+    if (raw is! List) return [];
+    final out = <T>[];
+    for (final e in raw) {
+      if (e is! Map<String, dynamic>) continue;
+      try {
+        out.add(fromJson(e));
+      } catch (_) {
+        // skip malformed item
+      }
+    }
+    return out;
   }
 
   Future<({List<String> items, String note})?> todayPlan() async {

@@ -454,7 +454,7 @@ app.get("/timeline", async (req, res) => {
       ...(courseId ? { courseId } : {}),
       dueAt: { gte: from, lte: to },
     },
-    include: { course: { select: { id: true, code: true, title: true, colorKey: true } } },
+    include: { course: { select: { id: true, code: true, title: true, colorKey: true, credits: true } } },
     orderBy: { dueAt: "asc" },
   });
 
@@ -471,7 +471,7 @@ app.get("/timeline", async (req, res) => {
       ...(courseId ? { courseId } : {}),
       startsAt: { gte: from, lte: to },
     },
-    include: { course: { select: { id: true, code: true, title: true, colorKey: true } } },
+    include: { course: { select: { id: true, code: true, title: true, colorKey: true, credits: true } } },
     orderBy: { startsAt: "asc" },
   });
 

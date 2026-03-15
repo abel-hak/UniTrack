@@ -1053,12 +1053,14 @@ class _TimelineTab extends ConsumerWidget {
           child: coursesAsync.when(
             data: (courses) {
               final chips = <Course?>[null, ...courses];
-              return ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemCount: chips.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
+              return Scrollbar(
+                thumbVisibility: true,
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: chips.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
                   final course = chips[index];
                   final isAll = course == null;
                   final selected = isAll
@@ -1119,6 +1121,7 @@ class _TimelineTab extends ConsumerWidget {
                     ),
                   );
                 },
+                ),
               );
             },
             loading: () => const Center(
