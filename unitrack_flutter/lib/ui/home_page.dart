@@ -9,6 +9,8 @@ import '../features/timeline/models.dart';
 import '../core/notifications/notification_service.dart';
 import 'announcements_exams_page.dart';
 import 'profile_page.dart';
+import 'widgets/empty_state.dart';
+import 'widgets/skeleton_loading.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -392,11 +394,12 @@ class _AddCourseSheetState extends ConsumerState<_AddCourseSheet> {
               const BorderRadius.vertical(top: Radius.circular(18)),
           border: Border.all(color: colors.border),
         ),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SheetHandle(),
             Row(
               children: [
                 Expanded(
@@ -621,11 +624,12 @@ class _AddAssignmentSheetState extends ConsumerState<_AddAssignmentSheet> {
               const BorderRadius.vertical(top: Radius.circular(18)),
           border: Border.all(color: colors.border),
         ),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SheetHandle(),
             Row(
               children: [
                 Expanded(
@@ -835,11 +839,12 @@ class _AssignmentDetailSheetState
               const BorderRadius.vertical(top: Radius.circular(18)),
           border: Border.all(color: colors.border),
         ),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SheetHandle(),
             Row(
               children: [
                 Container(
@@ -972,31 +977,10 @@ class _GradesTab extends ConsumerWidget {
 
     final rows = ref.watch(courseGradesProvider);
     if (rows.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.school_outlined,
-                size: 48,
-                color: colors.mutedForeground.withValues(alpha: 0.4)),
-            const SizedBox(height: 12),
-            Text(
-              'No graded items yet',
-              style: text.bodyMedium?.copyWith(
-                color: colors.mutedForeground,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Grades will appear once you add scores to assignments',
-              textAlign: TextAlign.center,
-              style: text.bodySmall?.copyWith(
-                color: colors.mutedForeground.withValues(alpha: 0.7),
-              ),
-            ),
-          ],
-        ),
+      return const EmptyState(
+        icon: Icons.school_outlined,
+        title: 'No graded items yet',
+        subtitle: 'Grades will appear once you add scores to assignments',
       );
     }
 
@@ -1173,12 +1157,9 @@ class _TimelineTab extends ConsumerWidget {
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2))),
-            error: (_, __) => Center(
-              child: Text(
-                'Failed to load courses',
-                style: text.bodySmall
-                    ?.copyWith(color: colors.mutedForeground),
-              ),
+            error: (_, __) => EmptyState(
+              icon: Icons.error_outline,
+              title: 'Failed to load courses',
             ),
           ),
         ),
@@ -1188,32 +1169,10 @@ class _TimelineTab extends ConsumerWidget {
             data: (bundle) {
               final groups = _buildTimelineGroups(context, bundle);
               if (groups.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.event_note_outlined,
-                          size: 48,
-                          color: colors.mutedForeground
-                              .withValues(alpha: 0.4)),
-                      const SizedBox(height: 12),
-                      Text(
-                        'No upcoming items',
-                        style: text.bodyMedium?.copyWith(
-                          color: colors.mutedForeground,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Tap + to add your first assignment',
-                        style: text.bodySmall?.copyWith(
-                          color: colors.mutedForeground
-                              .withValues(alpha: 0.7),
-                        ),
-                      ),
-                    ],
-                  ),
+                return const EmptyState(
+                  icon: Icons.event_note_outlined,
+                  title: 'No upcoming items',
+                  subtitle: 'Tap + to add your first assignment',
                 );
               }
               return RefreshIndicator(
@@ -1233,31 +1192,23 @@ class _TimelineTab extends ConsumerWidget {
                 ),
               );
             },
-            loading: () => const Center(
-              child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2)),
+            loading: () => ListView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 92),
+              children: const [
+                SizedBox(height: 12),
+                TimelineCardSkeleton(),
+                SizedBox(height: 10),
+                TimelineCardSkeleton(),
+                SizedBox(height: 10),
+                TimelineCardSkeleton(),
+              ],
             ),
-            error: (e, __) => Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.error_outline,
-                      color: Colors.red.shade300, size: 36),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Failed to load timeline',
-                    style: text.bodySmall
-                        ?.copyWith(color: colors.mutedForeground),
-                  ),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: () =>
-                        ref.invalidate(timelineProvider),
-                    child: const Text('Retry'),
-                  ),
-                ],
+            error: (e, __) => EmptyState(
+              icon: Icons.error_outline,
+              title: 'Failed to load timeline',
+              action: TextButton(
+                onPressed: () => ref.invalidate(timelineProvider),
+                child: const Text('Retry'),
               ),
             ),
           ),
@@ -1300,6 +1251,7 @@ List<Widget> _buildTimelineGroups(
         assignment: a,
         child: _TimelineItemCard(
           variant: variant,
+          typeLabel: 'Assignment',
           title: a.title,
           subtitle: subtitle,
           rightText: rightText,
@@ -1320,6 +1272,7 @@ List<Widget> _buildTimelineGroups(
       date: day,
       card: _TimelineItemCard(
         variant: _TimelineVariant.announcement,
+        typeLabel: 'Announcement',
         title: an.title,
         body: an.body,
         footer:
@@ -1343,6 +1296,7 @@ List<Widget> _buildTimelineGroups(
         variant: isCountdown
             ? _TimelineVariant.countdown
             : _TimelineVariant.simple,
+        typeLabel: 'Exam',
         title: '${ex.course.title} · ${_cap(ex.kind)}',
         subtitle:
             '${ex.course.title}${ex.location != null ? ' · ${ex.location}' : ''}',
@@ -1492,6 +1446,7 @@ enum _Leading { check, megaphone, clipboard, book }
 class _TimelineItemCard extends StatelessWidget {
   final _TimelineVariant variant;
   final String title;
+  final String? typeLabel;
   final String? subtitle;
   final String? body;
   final String? footer;
@@ -1504,6 +1459,7 @@ class _TimelineItemCard extends StatelessWidget {
   const _TimelineItemCard({
     required this.variant,
     required this.title,
+    this.typeLabel,
     this.subtitle,
     this.body,
     this.footer,
@@ -1571,6 +1527,24 @@ class _TimelineItemCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (typeLabel != null) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: colors.mutedForeground.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        typeLabel!,
+                        style: text.labelSmall?.copyWith(
+                          color: colors.mutedForeground,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                  ],
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

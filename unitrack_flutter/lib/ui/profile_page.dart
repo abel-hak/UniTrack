@@ -111,129 +111,156 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                Center(
-                  child: CircleAvatar(
-                    radius: 40,
-                    backgroundColor:
-                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                    child: Text(
-                      user.name.isNotEmpty
-                          ? user.name[0].toUpperCase()
-                          : '?',
-                      style: text.headlineMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w800,
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: colors.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colors.shadowCard,
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
                       ),
-                    ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: Text(
-                    user.name,
-                    style: text.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Center(
-                  child: Text(
-                    user.email,
-                    style: text.bodyMedium?.copyWith(
-                      color: colors.mutedForeground,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Center(
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      _capitalize(user.role),
-                      style: text.labelMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Divider(color: colors.border),
-                const SizedBox(height: 16),
-                Text(
-                  'Change Password',
-                  style: text.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 12),
-                _PwField(
-                  label: 'Current Password',
-                  controller: _currentPassword,
-                ),
-                const SizedBox(height: 10),
-                _PwField(
-                  label: 'New Password',
-                  controller: _newPassword,
-                ),
-                const SizedBox(height: 10),
-                _PwField(
-                  label: 'Confirm New Password',
-                  controller: _confirmPassword,
-                ),
-                const SizedBox(height: 12),
-                if (_pwError != null) ...[
-                  Text(
-                    _pwError!,
-                    style: text.bodySmall?.copyWith(
-                      color: Colors.red.shade700,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                if (_pwSuccess != null) ...[
-                  Text(
-                    _pwSuccess!,
-                    style: text.bodySmall?.copyWith(
-                      color: Colors.green.shade700,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                ElevatedButton(
-                  onPressed: _changingPw ? null : _changePassword,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: _changingPw
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text(
-                          'Update Password',
-                          style: TextStyle(fontWeight: FontWeight.w800),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 40,
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                        child: Text(
+                          user.name.isNotEmpty
+                              ? user.name[0].toUpperCase()
+                              : '?',
+                          style: text.headlineMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        user.name,
+                        style: text.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        user.email,
+                        style: text.bodyMedium?.copyWith(
+                          color: colors.mutedForeground,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          _capitalize(user.role),
+                          style: text.labelMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 32),
-                Divider(color: colors.border),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: colors.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colors.shadowCard,
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Change Password',
+                        style: text.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 12),
+                      _PwField(
+                        label: 'Current Password',
+                        controller: _currentPassword,
+                      ),
+                      const SizedBox(height: 10),
+                      _PwField(
+                        label: 'New Password',
+                        controller: _newPassword,
+                      ),
+                      const SizedBox(height: 10),
+                      _PwField(
+                        label: 'Confirm New Password',
+                        controller: _confirmPassword,
+                      ),
+                      const SizedBox(height: 12),
+                      if (_pwError != null) ...[
+                        Text(
+                          _pwError!,
+                          style: text.bodySmall?.copyWith(
+                            color: Colors.red.shade700,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      if (_pwSuccess != null) ...[
+                        Text(
+                          _pwSuccess!,
+                          style: text.bodySmall?.copyWith(
+                            color: Colors.green.shade700,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      ElevatedButton(
+                        onPressed: _changingPw ? null : _changePassword,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: _changingPw
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text(
+                                'Update Password',
+                                style: TextStyle(fontWeight: FontWeight.w800),
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
                 OutlinedButton.icon(
                   onPressed: () {
                     ref.read(authStateNotifierProvider.notifier).logout();

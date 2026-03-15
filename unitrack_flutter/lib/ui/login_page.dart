@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
@@ -68,108 +69,129 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Spacer(flex: 2),
-                  Text(
-                    'UniTrack',
-                    style: text.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.2,
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+                      ],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Sign in to continue',
-                    style: text.bodyMedium?.copyWith(
-                      color: colors.mutedForeground,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  _Field(label: 'Email', controller: _email),
-                  const SizedBox(height: 12),
-                  _Field(
-                    label: 'Password',
-                    controller: _password,
-                    obscureText: true,
-                    onSubmitted: (_) => _submit(),
-                  ),
-                  const SizedBox(height: 18),
-                  if (_error != null) ...[
-                    Text(
-                      _error!,
-                      style: text.bodySmall?.copyWith(
-                        color: Colors.red.shade700,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  ElevatedButton(
-                    onPressed: _loading ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: _loading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text(
-                            'Sign in',
-                            style: TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Don't have an account? ",
-                        style: text.bodySmall?.copyWith(
-                          color: colors.mutedForeground,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const RegisterPage(),
-                            ),
-                          );
-                        },
-                        child: Text(
-                          'Create account',
-                          style: text.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Spacer(flex: 2),
+                        Text(
+                          'UniTrack',
+                          style: text.headlineSmall?.copyWith(
                             fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(flex: 3),
-                  Text(
-                    'API: ${ref.watch(baseUrlProvider)}',
-                    textAlign: TextAlign.center,
-                    style: text.labelSmall?.copyWith(
-                      color: colors.mutedForeground.withValues(alpha: 0.6),
-                      fontWeight: FontWeight.w600,
+                        const SizedBox(height: 4),
+                        Text(
+                          'Sign in to continue',
+                          style: text.bodyMedium?.copyWith(
+                            color: colors.mutedForeground,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _Field(label: 'Email', controller: _email),
+                        const SizedBox(height: 12),
+                        _Field(
+                          label: 'Password',
+                          controller: _password,
+                          obscureText: true,
+                          onSubmitted: (_) => _submit(),
+                        ),
+                        const SizedBox(height: 18),
+                        if (_error != null) ...[
+                          Text(
+                            _error!,
+                            style: text.bodySmall?.copyWith(
+                              color: Colors.red.shade700,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        ElevatedButton(
+                          onPressed: _loading ? null : _submit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: _loading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text(
+                                  'Sign in',
+                                  style: TextStyle(fontWeight: FontWeight.w800),
+                                ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Don't have an account? ",
+                              style: text.bodySmall?.copyWith(
+                                color: colors.mutedForeground,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const RegisterPage(),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                'Create account',
+                                style: text.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Spacer(flex: 3),
+                        if (kDebugMode)
+                          Text(
+                            'API: ${ref.watch(baseUrlProvider)}',
+                            textAlign: TextAlign.center,
+                            style: text.labelSmall?.copyWith(
+                              color: colors.mutedForeground.withValues(alpha: 0.6),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

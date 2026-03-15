@@ -6,6 +6,8 @@ import '../core/notifications/notification_service.dart';
 import '../core/providers.dart';
 import '../features/announcements_exams/models.dart';
 import '../main.dart';
+import 'widgets/empty_state.dart';
+import 'widgets/skeleton_loading.dart';
 
 class AnnouncementsExamsPage extends ConsumerWidget {
   const AnnouncementsExamsPage({super.key});
@@ -17,7 +19,6 @@ class AnnouncementsExamsPage extends ConsumerWidget {
     if (!authState.isAuthed) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    final auth = authState.user!;
 
     return DefaultTabController(
       length: 2,
@@ -89,11 +90,12 @@ class AnnouncementsExamsPage extends ConsumerWidget {
                       const BorderRadius.vertical(top: Radius.circular(18)),
                   border: Border.all(color: colors.border),
                 ),
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const SheetHandle(),
                     Row(
                       children: [
                         Expanded(
@@ -238,11 +240,12 @@ class AnnouncementsExamsPage extends ConsumerWidget {
                       const BorderRadius.vertical(top: Radius.circular(18)),
                   border: Border.all(color: colors.border),
                 ),
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const SheetHandle(),
                     Row(
                       children: [
                         Expanded(
@@ -408,30 +411,14 @@ class _AnnouncementsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(announcementsProvider);
-    final colors = UniTrackColors.of(context);
-    final text = Theme.of(context).textTheme;
     final isPrivileged = _isPrivileged(ref);
 
     return async.when(
       data: (items) {
         if (items.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.campaign_outlined,
-                    size: 48,
-                    color: colors.mutedForeground.withValues(alpha: 0.4)),
-                const SizedBox(height: 12),
-                Text(
-                  'No announcements yet',
-                  style: text.bodyMedium?.copyWith(
-                    color: colors.mutedForeground,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
+          return const EmptyState(
+            icon: Icons.campaign_outlined,
+            title: 'No announcements yet',
           );
         }
         return RefreshIndicator(
@@ -453,27 +440,20 @@ class _AnnouncementsTab extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const Center(
-        child: SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
+      loading: () => ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 92),
+        itemCount: 5,
+        itemBuilder: (_, __) => const Padding(
+          padding: EdgeInsets.only(bottom: 10),
+          child: TimelineCardSkeleton(),
         ),
       ),
-      error: (_, __) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Failed to load announcements.',
-              style: text.bodySmall?.copyWith(color: colors.mutedForeground),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => ref.invalidate(announcementsProvider),
-              child: const Text('Retry'),
-            ),
-          ],
+      error: (_, __) => EmptyState(
+        icon: Icons.error_outline,
+        title: 'Failed to load announcements.',
+        action: TextButton(
+          onPressed: () => ref.invalidate(announcementsProvider),
+          child: const Text('Retry'),
         ),
       ),
     );
@@ -522,110 +502,160 @@ class _AnnouncementCard extends StatelessWidget {
     final colors = UniTrackColors.of(context);
     final text = Theme.of(context).textTheme;
 
+    final primary = Theme.of(context).colorScheme.primary;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colors.border),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.border.withValues(alpha: 0.8)),
         boxShadow: [
           BoxShadow(
             color: colors.shadowCard,
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: primary.withValues(alpha: 0.06),
             blurRadius: 8,
-            offset: const Offset(0, 3),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: colors.border.withValues(alpha: 0.35),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.campaign_outlined,
-                  size: 16,
-                  color: Colors.black.withValues(alpha: 0.6),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  item.title,
-                  style: text.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.1,
-                  ),
-                ),
-              ),
-              if (canDelete)
-                IconButton(
-                  icon: Icon(Icons.delete_outline,
-                      size: 18, color: Colors.red.shade300),
-                  onPressed: onDelete,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            item.body,
-            style: text.bodySmall?.copyWith(
-              color: colors.mutedForeground,
-              height: 1.25,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'By ${item.authorName} · ${DateFormat('EEE, MMM d').format(item.createdAt)}',
-            style: text.labelSmall?.copyWith(
-              color: colors.mutedForeground.withValues(alpha: 0.9),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextButton.icon(
-                  onPressed: () => _showSummaryDialog(context, item),
-                  icon: const Icon(Icons.auto_awesome, size: 16),
-                  label: const Text('AI TL;DR'),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 0, vertical: 4),
-                    foregroundColor: colors.mutedForeground,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color:
-                        colors.mutedForeground.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    'AI',
-                    style: text.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
-                      color: colors.mutedForeground,
-                    ),
-                  ),
+          Container(
+            width: 5,
+            margin: const EdgeInsets.only(left: 10, top: 12, bottom: 12),
+            height: 72,
+            decoration: BoxDecoration(
+              color: primary,
+              borderRadius: BorderRadius.circular(999),
+              boxShadow: [
+                BoxShadow(
+                  color: primary.withValues(alpha: 0.35),
+                  blurRadius: 6,
+                  offset: const Offset(0, 1),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 12, 12, 12),
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: primary.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: primary.withValues(alpha: 0.25),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Icon(Icons.campaign_rounded, size: 18, color: primary),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(0, 12, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: colors.mutedForeground.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'Announcement',
+                      style: text.labelSmall?.copyWith(
+                        color: colors.mutedForeground,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.title,
+                          style: text.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.1,
+                          ),
+                        ),
+                      ),
+                      if (canDelete)
+                        IconButton(
+                          icon: Icon(Icons.delete_outline,
+                              size: 18, color: Colors.red.shade300),
+                          onPressed: onDelete,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                  item.body,
+                  style: text.bodySmall?.copyWith(
+                    color: colors.mutedForeground,
+                    height: 1.25,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'By ${item.authorName} · ${DateFormat('EEE, MMM d').format(item.createdAt)}',
+                  style: text.labelSmall?.copyWith(
+                    color: colors.mutedForeground.withValues(alpha: 0.9),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => _showSummaryDialog(context, item),
+                      icon: const Icon(Icons.auto_awesome, size: 16),
+                      label: const Text('AI TL;DR'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 0, vertical: 4),
+                        foregroundColor: colors.mutedForeground,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color:
+                            colors.mutedForeground.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        'AI',
+                        style: text.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                          color: colors.mutedForeground,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                ],
+              ),
             ),
           ),
         ],
@@ -783,29 +813,13 @@ class _ExamsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(examsProvider);
-    final colors = UniTrackColors.of(context);
-    final text = Theme.of(context).textTheme;
 
     return async.when(
       data: (items) {
         if (items.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.menu_book_outlined,
-                    size: 48,
-                    color: colors.mutedForeground.withValues(alpha: 0.4)),
-                const SizedBox(height: 12),
-                Text(
-                  'No exams scheduled',
-                  style: text.bodyMedium?.copyWith(
-                    color: colors.mutedForeground,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
+          return const EmptyState(
+            icon: Icons.menu_book_outlined,
+            title: 'No exams scheduled',
           );
         }
         return RefreshIndicator(
@@ -827,27 +841,20 @@ class _ExamsTab extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const Center(
-        child: SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
+      loading: () => ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 92),
+        itemCount: 5,
+        itemBuilder: (_, __) => const Padding(
+          padding: EdgeInsets.only(bottom: 10),
+          child: TimelineCardSkeleton(),
         ),
       ),
-      error: (_, __) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Failed to load exams.',
-              style: text.bodySmall?.copyWith(color: colors.mutedForeground),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => ref.invalidate(examsProvider),
-              child: const Text('Retry'),
-            ),
-          ],
+      error: (_, __) => EmptyState(
+        icon: Icons.error_outline,
+        title: 'Failed to load exams.',
+        action: TextButton(
+          onPressed: () => ref.invalidate(examsProvider),
+          child: const Text('Retry'),
         ),
       ),
     );
@@ -899,111 +906,172 @@ class _ExamCard extends StatelessWidget {
     final now = DateTime.now();
     final daysUntil = item.startsAt.difference(now).inDays;
     final isUpcoming = daysUntil >= 0 && daysUntil <= 3;
+    const accentExam = Color(0xFFD97706);
+    const accentExamBg = Color(0xFFF59E0B);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isUpcoming ? const Color(0xFFE11D48).withValues(alpha: 0.3) : colors.border,
+          color: isUpcoming
+              ? const Color(0xFFE11D48).withValues(alpha: 0.3)
+              : colors.border.withValues(alpha: 0.8),
         ),
         boxShadow: [
           BoxShadow(
             color: colors.shadowCard,
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: accentExam.withValues(alpha: 0.06),
             blurRadius: 8,
-            offset: const Offset(0, 3),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 10,
-            height: 10,
-            margin: const EdgeInsets.only(right: 12),
+            width: 5,
+            margin: const EdgeInsets.only(left: 10, top: 12, bottom: 12),
+            height: 72,
             decoration: BoxDecoration(
-              color: _courseDotColor(context, item.course.colorKey),
-              shape: BoxShape.circle,
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${item.course.title} · ${_capLocal(item.kind)}',
-                  style: text.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              color: accentExam,
+              borderRadius: BorderRadius.circular(999),
+              boxShadow: [
+                BoxShadow(
+                  color: accentExam.withValues(alpha: 0.35),
+                  blurRadius: 6,
+                  offset: const Offset(0, 1),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  item.course.title,
-                  style: text.bodySmall?.copyWith(
-                    color: colors.mutedForeground,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(
-                      '${DateFormat('EEE, MMM d').format(item.startsAt)} · '
-                      '${DateFormat('h:mm a').format(item.startsAt)}',
-                      style: text.labelSmall?.copyWith(
-                        color: isUpcoming
-                            ? const Color(0xFFE11D48)
-                            : colors.mutedForeground.withValues(alpha: 0.9),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    if (isUpcoming) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE11D48).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          daysUntil == 0
-                              ? 'Today'
-                              : daysUntil == 1
-                                  ? 'Tomorrow'
-                                  : 'In $daysUntil days',
-                          style: text.labelSmall?.copyWith(
-                            color: const Color(0xFFE11D48),
-                            fontWeight: FontWeight.w700,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                if (item.location != null && item.location!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      item.location!,
-                      style: text.labelSmall?.copyWith(
-                        color: colors.mutedForeground.withValues(alpha: 0.9),
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
-          if (canDelete)
-            IconButton(
-              icon: Icon(Icons.delete_outline,
-                  size: 18, color: Colors.red.shade300),
-              onPressed: onDelete,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+          const SizedBox(width: 12),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 12, 12, 12),
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: accentExamBg.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: accentExam.withValues(alpha: 0.25),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.menu_book_rounded, size: 18, color: accentExam),
             ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(0, 12, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: colors.mutedForeground.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'Exam',
+                      style: text.labelSmall?.copyWith(
+                        color: colors.mutedForeground,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${item.course.title} · ${_capLocal(item.kind)}',
+                          style: text.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      if (canDelete)
+                        IconButton(
+                          icon: Icon(Icons.delete_outline,
+                              size: 18, color: Colors.red.shade300),
+                          onPressed: onDelete,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item.course.title,
+                    style: text.bodySmall?.copyWith(
+                      color: colors.mutedForeground,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        '${DateFormat('EEE, MMM d').format(item.startsAt)} · '
+                        '${DateFormat('h:mm a').format(item.startsAt)}',
+                        style: text.labelSmall?.copyWith(
+                          color: isUpcoming
+                              ? const Color(0xFFE11D48)
+                              : colors.mutedForeground.withValues(alpha: 0.9),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (isUpcoming) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE11D48).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            daysUntil == 0
+                                ? 'Today'
+                                : daysUntil == 1
+                                    ? 'Tomorrow'
+                                    : 'In $daysUntil days',
+                            style: text.labelSmall?.copyWith(
+                              color: const Color(0xFFE11D48),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (item.location != null && item.location!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        item.location!,
+                        style: text.labelSmall?.copyWith(
+                          color: colors.mutedForeground.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1016,17 +1084,6 @@ bool _isPrivileged(WidgetRef ref) {
   final auth = ref.watch(authStateNotifierProvider).user;
   if (auth == null) return false;
   return auth.role == 'admin' || auth.role == 'publisher';
-}
-
-Color _courseDotColor(BuildContext context, String colorKey) {
-  final c = UniTrackColors.of(context);
-  return switch (colorKey) {
-    'yellow' => c.courseYellow,
-    'teal' => c.courseTeal,
-    'terracotta' => c.courseTerracotta,
-    'slate' => c.courseSlate,
-    _ => c.courseSlate,
-  };
 }
 
 String _capLocal(String s) =>
