@@ -1,8 +1,10 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api/api_client.dart';
 import 'auth/auth_repository.dart';
@@ -199,6 +201,17 @@ final batchesProvider = FutureProvider<List<Batch>>((ref) async {
   final baseUrl = ref.watch(baseUrlProvider);
   final repo = AuthRepository(ApiClient(baseUrl: baseUrl));
   return repo.listBatches();
+});
+
+// ─── Theme ───────────────────────────────────────────────────
+
+final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.light);
+
+// ─── Onboarding ──────────────────────────────────────────────
+
+final hasSeenOnboardingProvider = FutureProvider<bool>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getBool('unitrack_onboarding_seen') ?? false;
 });
 
 // ─── Infrastructure ──────────────────────────────────────────

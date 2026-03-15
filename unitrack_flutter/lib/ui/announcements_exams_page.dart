@@ -8,6 +8,7 @@ import '../features/announcements_exams/models.dart';
 import '../main.dart';
 import 'widgets/empty_state.dart';
 import 'widgets/skeleton_loading.dart';
+import 'widgets/styled_dialog.dart';
 
 class AnnouncementsExamsPage extends ConsumerWidget {
   const AnnouncementsExamsPage({super.key});
@@ -57,13 +58,25 @@ class AnnouncementsExamsPage extends ConsumerWidget {
   }
 
   void _openFabSheet(BuildContext context, WidgetRef ref) {
-    final tabIndex = DefaultTabController.of(context).index;
+    final controller = DefaultTabController.maybeOf(context);
+    final tabIndex = controller?.index ?? 0;
     final auth = ref.read(authStateNotifierProvider).user!;
     final canPostAnnouncements = auth.role == 'admin' || auth.role == 'publisher';
-    // Students can only add exams; admin/publisher can add announcement or exam depending on tab.
-    if (canPostAnnouncements && tabIndex == 0) {
-      _openAnnouncementSheet(context, ref);
+
+    if (tabIndex == 0) {
+      // Announcements tab: open announcement sheet or tell student they can't
+      if (canPostAnnouncements) {
+        _openAnnouncementSheet(context, ref);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Only admins and publishers can post announcements.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } else {
+      // Exams tab: open exam sheet
       _openExamSheet(context, ref);
     }
   }
@@ -188,7 +201,17 @@ class AnnouncementsExamsPage extends ConsumerWidget {
 
   Future<void> _openExamSheet(BuildContext context, WidgetRef ref) async {
     final courses = ref.read(coursesProvider).valueOrNull ?? const [];
-    if (courses.isEmpty) return;
+    if (courses.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Add at least one course first to schedule an exam.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
 
     String courseId = courses.first.id;
     String kind = 'midterm';
@@ -771,14 +794,15 @@ class _AnnouncementCard extends StatelessWidget {
               );
             }
 
-            return AlertDialog(
-              title: Row(
+            return StyledDialog(
+              titleIcon: Icons.auto_awesome,
+              title: const Text('AI summary'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('AI summary'),
-                  const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: colors.mutedForeground.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(999),
@@ -792,15 +816,12 @@ class _AnnouncementCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  body,
                 ],
               ),
-              content: body,
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Close'),
-                ),
-              ],
+              actionLabel: 'Close',
+              onAction: () => Navigator.of(ctx).pop(),
             );
           },
         );

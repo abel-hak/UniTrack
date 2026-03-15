@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import '../core/providers.dart';
 import '../main.dart';
+import 'widgets/app_footer.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -261,6 +262,40 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
                 ),
                 const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: colors.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colors.shadowCard,
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.dark_mode_outlined, size: 22, color: colors.mutedForeground),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Dark mode',
+                        style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const Spacer(),
+                      Switch.adaptive(
+                        value: ref.watch(themeModeProvider) == ThemeMode.dark,
+                        onChanged: (on) {
+                          ref.read(themeModeProvider.notifier).state =
+                              on ? ThemeMode.dark : ThemeMode.light;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
                 OutlinedButton.icon(
                   onPressed: () {
                     ref.read(authStateNotifierProvider.notifier).logout();
@@ -282,15 +317,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                Center(
-                  child: Text(
-                    'UniTrack v1.0.0',
-                    style: text.labelSmall?.copyWith(
-                      color: colors.mutedForeground,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+                const AppFooter(),
               ],
             ),
           ),

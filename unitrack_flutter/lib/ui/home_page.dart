@@ -11,6 +11,7 @@ import 'announcements_exams_page.dart';
 import 'profile_page.dart';
 import 'widgets/empty_state.dart';
 import 'widgets/skeleton_loading.dart';
+import 'widgets/styled_dialog.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -1160,6 +1161,10 @@ class _TimelineTab extends ConsumerWidget {
             error: (_, __) => EmptyState(
               icon: Icons.error_outline,
               title: 'Failed to load courses',
+              action: TextButton(
+                onPressed: () => ref.invalidate(coursesProvider),
+                child: const Text('Retry'),
+              ),
             ),
           ),
         ),
@@ -1342,20 +1347,75 @@ class _TappableAssignmentCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
-      onTap: () async {
-        final changed = await showModalBottomSheet<bool>(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) =>
-              _AssignmentDetailSheet(assignment: assignment),
-        );
-        if (changed == true) {
-          ref.invalidate(timelineProvider);
-        }
-      },
-      child: child,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () async {
+          final changed = await showModalBottomSheet<bool>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) =>
+                _AssignmentDetailSheet(assignment: assignment),
+          );
+          if (changed == true) {
+            ref.invalidate(timelineProvider);
+          }
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: child,
+      ),
+    );
+  }
+}
+
+// ─── Staggered animation ─────────────────────────────────────
+
+class _StaggeredFadeIn extends StatefulWidget {
+  final int index;
+  final Widget child;
+
+  const _StaggeredFadeIn({required this.index, required this.child});
+
+  @override
+  State<_StaggeredFadeIn> createState() => _StaggeredFadeInState();
+}
+
+class _StaggeredFadeInState extends State<_StaggeredFadeIn>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    Future.delayed(Duration(milliseconds: widget.index * 60), () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _animation,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.04),
+          end: Offset.zero,
+        ).animate(_animation),
+        child: widget.child,
+      ),
     );
   }
 }
@@ -1424,10 +1484,10 @@ class _TimelineGroup extends StatelessWidget {
                   ],
                 ),
               ),
-              ...items.map((e) => Padding(
+              ...items.asMap().entries.map((entry) => Padding(
                     padding:
                         const EdgeInsets.only(left: 18, bottom: 10),
-                    child: e,
+                    child: _StaggeredFadeIn(index: entry.key, child: entry.value),
                   )),
             ],
           ),
@@ -1822,53 +1882,46 @@ class _TodayPlanCardState extends ConsumerState<_TodayPlanCard> {
           final text = Theme.of(ctx).textTheme;
 
           if (result == null) {
-            return AlertDialog(
+            return StyledDialog(
+              titleIcon: Icons.auto_awesome,
               title: const Text('AI plan'),
               content: Text(
                 'Unable to generate a plan right now.',
                 style: text.bodyMedium
                     ?.copyWith(color: colors.mutedForeground),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Close'),
-                ),
-              ],
+              actionLabel: 'Close',
+              onAction: () => Navigator.of(ctx).pop(),
             );
           }
 
           final items = result.items;
           final note = result.note;
 
-          return AlertDialog(
-            title: Row(
-              children: [
-                const Text('Plan for today'),
-                const SizedBox(width: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: colors.mutedForeground.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    'AI-generated',
-                    style: text.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
-                      color: colors.mutedForeground,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          return StyledDialog(
+            titleIcon: Icons.today,
+            title: const Text('Plan for today'),
             content: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: colors.mutedForeground.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      'AI-generated',
+                      style: text.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                        color: colors.mutedForeground,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   if (items.isEmpty)
                     Text(
                       'You have no urgent items in the next week.',
@@ -1877,8 +1930,7 @@ class _TodayPlanCardState extends ConsumerState<_TodayPlanCard> {
                   else ...[
                     ...items.map(
                       (t) => Padding(
-                        padding:
-                            const EdgeInsets.only(bottom: 4),
+                        padding: const EdgeInsets.only(bottom: 4),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1906,12 +1958,8 @@ class _TodayPlanCardState extends ConsumerState<_TodayPlanCard> {
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Close'),
-              ),
-            ],
+            actionLabel: 'Close',
+            onAction: () => Navigator.of(ctx).pop(),
           );
         },
       );
