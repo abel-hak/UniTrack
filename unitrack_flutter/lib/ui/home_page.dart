@@ -70,38 +70,40 @@ class _HomePageState extends ConsumerState<HomePage>
                           ),
                         ],
                       ),
-                      child: Row(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
                                   'UniTrack',
                                   style: text.titleLarge?.copyWith(
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: -0.3,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${DateFormat('MMMM yyyy').format(DateTime.now())} \u00b7 '
-                                  '${coursesAsync.maybeWhen(data: (c) => c.length, orElse: () => 0)} courses',
-                                  style: text.bodySmall?.copyWith(
-                                    color: colors.mutedForeground,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
+                              ),
+                              const _HeaderMenu(),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '${DateFormat('MMMM yyyy').format(DateTime.now())} \u00b7 '
+                            '${coursesAsync.maybeWhen(data: (c) => c.length, orElse: () => 0)} courses',
+                            style: text.bodySmall?.copyWith(
+                              color: colors.mutedForeground,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                          _GpaPill(
-                              value: _formatGpa(ref.watch(gpaProvider))),
-                          const SizedBox(width: 8),
-                          _ThemeToggle(),
-                          const SizedBox(width: 8),
-                          const _HeaderMenu(),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              _GpaPill(value: _formatGpa(ref.watch(gpaProvider))),
+                              const SizedBox(width: 8),
+                              const _ThemeToggle(),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -129,20 +131,10 @@ class _HomePageState extends ConsumerState<HomePage>
                 Positioned(
                   right: 16,
                   bottom: 16,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: colors.shadowFab,
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: FloatingActionButton(
-                      onPressed: () => _openAddAssignmentSheet(context),
-                      child: const Icon(Icons.add, size: 26),
-                    ),
+                  child: FloatingActionButton(
+                    onPressed: () => _openAddAssignmentSheet(context),
+                    elevation: 6,
+                    child: const Icon(Icons.add, size: 26),
                   ),
                 ),
               ],
@@ -1473,12 +1465,16 @@ class _TimelineGroup extends StatelessWidget {
     final colors = UniTrackColors.of(context);
     final text = Theme.of(context).textTheme;
 
+    const lineLeft = 13.0;
+    const dotSize = 8.0;
+    const cardPaddingLeft = 20.0;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: 18),
       child: Stack(
         children: [
           Positioned(
-            left: 10,
+            left: lineLeft,
             top: 22,
             bottom: 0,
             child: Container(width: 2, color: colors.timelineLine),
@@ -1487,13 +1483,13 @@ class _TimelineGroup extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.only(left: 0, bottom: 8),
+                padding: const EdgeInsets.only(left: 0, bottom: 10),
                 child: Row(
                   children: [
                     Container(
-                      width: 8,
-                      height: 8,
-                      margin: const EdgeInsets.only(right: 10),
+                      width: dotSize,
+                      height: dotSize,
+                      margin: EdgeInsets.only(left: lineLeft - dotSize / 2, right: 10),
                       decoration: BoxDecoration(
                         color: colors.timelineLine,
                         shape: BoxShape.circle,
@@ -1520,8 +1516,7 @@ class _TimelineGroup extends StatelessWidget {
                 ),
               ),
               ...items.asMap().entries.map((entry) => Padding(
-                    padding:
-                        const EdgeInsets.only(left: 18, bottom: 10),
+                    padding: const EdgeInsets.only(left: cardPaddingLeft, bottom: 16),
                     child: _StaggeredFadeIn(index: entry.key, child: entry.value),
                   )),
             ],
@@ -1573,23 +1568,34 @@ class _TimelineItemCard extends StatelessWidget {
 
     final accentColor =
         accent == _Accent.primary ? primary : colors.border;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.border.withValues(alpha: 0.8)),
+        border: Border.all(
+          color: isDark ? Colors.white.withValues(alpha: 0.1) : colors.border.withValues(alpha: 0.8),
+        ),
         boxShadow: [
-          BoxShadow(
-            color: colors.shadowCard,
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-          BoxShadow(
-            color: accentColor.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
+          if (isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            )
+          else ...[
+            BoxShadow(
+              color: colors.shadowCard,
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+            BoxShadow(
+              color: accentColor.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ],
       ),
       child: Row(
@@ -1598,7 +1604,7 @@ class _TimelineItemCard extends StatelessWidget {
           Container(
             width: 5,
             height: 72,
-            margin: const EdgeInsets.only(left: 10, top: 12, bottom: 12),
+            margin: const EdgeInsets.only(left: 12, top: 12, bottom: 12),
             decoration: BoxDecoration(
               color: accentColor,
               borderRadius: BorderRadius.circular(999),
@@ -1611,9 +1617,9 @@ class _TimelineItemCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Padding(
-            padding: const EdgeInsets.fromLTRB(0, 12, 12, 12),
+            padding: const EdgeInsets.fromLTRB(0, 12, 10, 12),
             child: _LeadingIcon(leading: leading),
           ),
           Expanded(
@@ -1624,17 +1630,19 @@ class _TimelineItemCard extends StatelessWidget {
                 children: [
                   if (typeLabel != null) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: colors.mutedForeground.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
+                        color: primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         typeLabel!,
                         style: text.labelSmall?.copyWith(
-                          color: colors.mutedForeground,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 10,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF93C5FD)
+                              : primary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
                         ),
                       ),
                     ),
@@ -1752,8 +1760,8 @@ class _LeadingIcon extends StatelessWidget {
     };
 
     return Container(
-      width: 32,
-      height: 32,
+      width: 36,
+      height: 36,
       decoration: BoxDecoration(
         color: bgColor,
         shape: BoxShape.circle,
@@ -1765,7 +1773,7 @@ class _LeadingIcon extends StatelessWidget {
           ),
         ],
       ),
-      child: Icon(icon, size: 18, color: iconColor),
+      child: Icon(icon, size: 20, color: iconColor),
     );
   }
 }
@@ -1782,35 +1790,37 @@ class _SegmentTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = UniTrackColors.of(context);
+    final primary = Theme.of(context).colorScheme.primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      height: 38,
-      padding: const EdgeInsets.all(3),
+      height: 40,
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondary,
+        color: isDark ? const Color(0xFF262626) : Theme.of(context).colorScheme.secondary,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: colors.border),
       ),
       child: TabBar(
         controller: controller,
         indicator: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
+          color: primary,
+          borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
-              color: colors.shadowCard,
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+              color: primary.withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         dividerColor: Colors.transparent,
-        labelColor: Colors.black.withValues(alpha: 0.85),
-        unselectedLabelColor: Colors.black.withValues(alpha: 0.55),
+        labelColor: Colors.white,
+        unselectedLabelColor: colors.mutedForeground,
         labelStyle: const TextStyle(
-            fontWeight: FontWeight.w700, fontSize: 12),
+            fontWeight: FontWeight.w700, fontSize: 13),
         unselectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w700, fontSize: 12),
+            fontWeight: FontWeight.w600, fontSize: 13),
         tabs: labels.map((t) => Tab(text: t)).toList(),
       ),
     );

@@ -89,21 +89,21 @@ class UniTrackApp extends ConsumerWidget {
       ],
     );
 
-    // Lighter dark theme: easy to see, good contrast (no near-black)
-    const darkBackground = Color(0xFF2D3139);   // Medium dark gray
-    const darkForeground = Color(0xFFF0F1F3);   // Bright text
-    const darkCard = Color(0xFF3A3F48);         // Lighter cards, clear separation
-    const darkSecondary = Color(0xFF454A54);     // Chips, segments
-    const darkMuted = Color(0xFFB8BCC4);        // Secondary text, easy to read
-    const darkBorder = Color(0xFF50555F);       // Clear borders
+    // Dark theme: 3 gray levels only — background, cards, elevated
+    const darkBackground = Color(0xFF121212);
+    const darkForeground = Color(0xFFF0F1F3);
+    const darkCard = Color(0xFF1E1E1E);
+    const darkElevated = Color(0xFF262626);
+    const darkMuted = Color(0xFFB8BCC4);
+    const darkBorder = Color(0xFF40444B);
 
     final darkTheme = ThemeData(
       useMaterial3: true,
       scaffoldBackgroundColor: darkBackground,
       colorScheme: const ColorScheme.dark(
-        primary: Color(0xFF6B8AFF),   // Lighter deep blue for dark backgrounds
-        onPrimary: Color(0xFF0A1628),
-        secondary: darkSecondary,
+        primary: Color(0xFF3B82F6),   // Softer blue for FAB/actions
+        onPrimary: Colors.white,
+        secondary: darkElevated,
         onSecondary: darkForeground,
         surface: darkCard,
         onSurface: darkForeground,
@@ -125,15 +125,16 @@ class UniTrackApp extends ConsumerWidget {
       inputDecorationTheme: InputDecorationTheme(
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF6B8AFF), width: 2),
+          borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
         ),
-        focusColor: const Color(0xFF6B8AFF),
+        focusColor: const Color(0xFF3B82F6),
         filled: true,
         fillColor: darkCard,
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: Color(0xFF6B8AFF),
+        backgroundColor: Color(0xFF3B82F6),
         foregroundColor: Colors.white,
+        elevation: 6,
         shape: CircleBorder(),
       ),
     ).copyWith(
@@ -143,12 +144,12 @@ class UniTrackApp extends ConsumerWidget {
           border: darkBorder,
           shadowCard: Color(0x18000000),
           shadowElevated: Color(0x25000000),
-          shadowFab: Color(0x506B8AFF),
+          shadowFab: Color(0x503B82F6),
           courseYellow: Color(0xFFE5B800),
           courseTeal: Color(0xFF5A9AA6),
           courseTerracotta: Color(0xFFD97A5A),
           courseSlate: Color(0xFF8A95A0),
-          timelineLine: Color(0xFF5C626E),  // Visible timeline line
+          timelineLine: Color(0xFF40444B),
         ),
       ],
     );
