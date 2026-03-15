@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../main.dart';
+import 'widgets/app_footer.dart';
 
 Future<void> setOnboardingSeen() async {
   final prefs = await SharedPreferences.getInstance();
@@ -70,7 +71,8 @@ class OnboardingPage extends StatelessWidget {
                   child: const Text('Get started', style: TextStyle(fontWeight: FontWeight.w800)),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
+              const AppFooter(),
             ],
           ),
         ),
