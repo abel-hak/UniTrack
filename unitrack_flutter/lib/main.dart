@@ -21,7 +21,7 @@ class UniTrackApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const primary = Color(0xFF0045AB);
+    const primary = Color(0xFF1F3A8A); // Deep blue
     final baseTextTheme = ThemeData.light().textTheme;
     final display = GoogleFonts.spaceGroteskTextTheme(baseTextTheme);
     final body = GoogleFonts.interTextTheme(baseTextTheme);
@@ -79,7 +79,7 @@ class UniTrackApp extends ConsumerWidget {
           border: lightBorder,
           shadowCard: Color(0x0A000000),
           shadowElevated: Color(0x14000000),
-          shadowFab: Color(0x590045AB),
+          shadowFab: Color(0x591F3A8A),
           courseYellow: Color(0xFFFFC800),
           courseTeal: Color(0xFF4B7D89),
           courseTerracotta: Color(0xFFC05D35),
@@ -89,20 +89,20 @@ class UniTrackApp extends ConsumerWidget {
       ],
     );
 
-    // Softer dark theme: charcoal/slate instead of pure black, cards clearly elevated
-    const darkBackground = Color(0xFF1C1E22);   // Soft charcoal, not black
-    const darkForeground = Color(0xFFE8EAED);
-    const darkCard = Color(0xFF2A2D33);         // Clearly lighter than background
-    const darkSecondary = Color(0xFF363A42);    // Chips, unselected
-    const darkMuted = Color(0xFF9CA3AF);
-    const darkBorder = Color(0xFF40444B);       // Visible borders
+    // Lighter dark theme: easy to see, good contrast (no near-black)
+    const darkBackground = Color(0xFF2D3139);   // Medium dark gray
+    const darkForeground = Color(0xFFF0F1F3);   // Bright text
+    const darkCard = Color(0xFF3A3F48);         // Lighter cards, clear separation
+    const darkSecondary = Color(0xFF454A54);     // Chips, segments
+    const darkMuted = Color(0xFFB8BCC4);        // Secondary text, easy to read
+    const darkBorder = Color(0xFF50555F);       // Clear borders
 
     final darkTheme = ThemeData(
       useMaterial3: true,
       scaffoldBackgroundColor: darkBackground,
       colorScheme: const ColorScheme.dark(
-        primary: Color(0xFF6BA3FF),
-        onPrimary: Color(0xFF001D3D),
+        primary: Color(0xFF6B8AFF),   // Lighter deep blue for dark backgrounds
+        onPrimary: Color(0xFF0A1628),
         secondary: darkSecondary,
         onSecondary: darkForeground,
         surface: darkCard,
@@ -125,15 +125,15 @@ class UniTrackApp extends ConsumerWidget {
       inputDecorationTheme: InputDecorationTheme(
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF6BA3FF), width: 2),
+          borderSide: const BorderSide(color: Color(0xFF6B8AFF), width: 2),
         ),
-        focusColor: const Color(0xFF6BA3FF),
+        focusColor: const Color(0xFF6B8AFF),
         filled: true,
         fillColor: darkCard,
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: Color(0xFF6BA3FF),
-        foregroundColor: Color(0xFF001D3D),
+        backgroundColor: Color(0xFF6B8AFF),
+        foregroundColor: Colors.white,
         shape: CircleBorder(),
       ),
     ).copyWith(
@@ -143,12 +143,12 @@ class UniTrackApp extends ConsumerWidget {
           border: darkBorder,
           shadowCard: Color(0x18000000),
           shadowElevated: Color(0x25000000),
-          shadowFab: Color(0x506BA3FF),
+          shadowFab: Color(0x506B8AFF),
           courseYellow: Color(0xFFE5B800),
           courseTeal: Color(0xFF5A9AA6),
           courseTerracotta: Color(0xFFD97A5A),
           courseSlate: Color(0xFF8A95A0),
-          timelineLine: Color(0xFF4B5160),  // Slightly lighter line for visibility
+          timelineLine: Color(0xFF5C626E),  // Visible timeline line
         ),
       ],
     );

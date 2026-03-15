@@ -98,7 +98,9 @@ class _HomePageState extends ConsumerState<HomePage>
                           ),
                           _GpaPill(
                               value: _formatGpa(ref.watch(gpaProvider))),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 8),
+                          _ThemeToggle(),
+                          const SizedBox(width: 8),
                           const _HeaderMenu(),
                         ],
                       ),
@@ -188,6 +190,39 @@ class _HomePageState extends ConsumerState<HomePage>
 }
 
 // ─── Header popup menu ───────────────────────────────────────
+
+class _ThemeToggle extends ConsumerWidget {
+  const _ThemeToggle();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = UniTrackColors.of(context);
+    final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
+
+    return SizedBox(
+      width: 40,
+      height: 40,
+      child: IconButton(
+        onPressed: () {
+          ref.read(themeModeProvider.notifier).state =
+              isDark ? ThemeMode.light : ThemeMode.dark;
+        },
+        icon: Icon(
+          isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+          size: 22,
+          color: colors.mutedForeground,
+        ),
+        style: IconButton.styleFrom(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          side: BorderSide(color: colors.border),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _HeaderMenu extends ConsumerWidget {
   const _HeaderMenu();
