@@ -54,8 +54,19 @@ class _HomePageState extends ConsumerState<HomePage>
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        boxShadow: [
+                          BoxShadow(
+                            color: colors.border.withValues(alpha: 0.5),
+                            blurRadius: 0,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -66,11 +77,11 @@ class _HomePageState extends ConsumerState<HomePage>
                                 Text(
                                   'UniTrack',
                                   style: text.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.2,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.3,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
+                                const SizedBox(height: 4),
                                 Text(
                                   '${DateFormat('MMMM yyyy').format(DateTime.now())} \u00b7 '
                                   '${coursesAsync.maybeWhen(data: (c) => c.length, orElse: () => 0)} courses',
@@ -181,25 +192,34 @@ class _HeaderMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = UniTrackColors.of(context);
+    final primary = Theme.of(context).colorScheme.primary;
 
     return Container(
-      width: 38,
-      height: 38,
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: colors.border),
+        boxShadow: [
+          BoxShadow(
+            color: colors.shadowCard,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: PopupMenuButton<String>(
         icon: Icon(
-          Icons.menu,
-          size: 18,
+          Icons.menu_rounded,
+          size: 22,
           color: colors.mutedForeground,
         ),
         padding: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(20),
         ),
+        offset: const Offset(0, 48),
         onSelected: (value) {
           switch (value) {
             case 'announcements':
@@ -218,45 +238,69 @@ class _HeaderMenu extends ConsumerWidget {
           }
         },
         itemBuilder: (context) => [
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'announcements',
-            child: Row(
-              children: [
-                Icon(Icons.campaign_outlined, size: 18),
-                SizedBox(width: 10),
-                Text('Announcements & Exams'),
-              ],
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.campaign_rounded, size: 20, color: primary),
+              ),
+              title: const Text('Announcements & Exams'),
             ),
           ),
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'courses',
-            child: Row(
-              children: [
-                Icon(Icons.school_outlined, size: 18),
-                SizedBox(width: 10),
-                Text('Add Course'),
-              ],
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.school_rounded, size: 20, color: primary),
+              ),
+              title: const Text('Add Course'),
             ),
           ),
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'profile',
-            child: Row(
-              children: [
-                Icon(Icons.person_outline, size: 18),
-                SizedBox(width: 10),
-                Text('Profile'),
-              ],
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: colors.mutedForeground.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.person_rounded, size: 20, color: colors.mutedForeground),
+              ),
+              title: const Text('Profile'),
             ),
           ),
           const PopupMenuDivider(),
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'logout',
-            child: Row(
-              children: [
-                Icon(Icons.logout, size: 18, color: Colors.red),
-                SizedBox(width: 10),
-                Text('Sign Out', style: TextStyle(color: Colors.red)),
-              ],
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.logout_rounded, size: 20, color: Colors.red.shade700),
+              ),
+              title: Text('Sign Out', style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.w600)),
             ),
           ),
         ],
@@ -542,7 +586,7 @@ class _AddAssignmentSheetState extends ConsumerState<_AddAssignmentSheet> {
           );
       final courseName = widget.courses
           .firstWhere((c) => c.id == _courseId)
-          .code;
+          .title;
       NotificationService().scheduleAssignmentReminder(
         id: _dueAt.millisecondsSinceEpoch ~/ 1000,
         title: title,
@@ -611,7 +655,7 @@ class _AddAssignmentSheetState extends ConsumerState<_AddAssignmentSheet> {
               value: _courseId,
               items: widget.courses
                   .map((c) =>
-                      DropdownMenuItem(value: c.id, child: Text(c.code)))
+                      DropdownMenuItem(value: c.id, child: Text(c.title)))
                   .toList(),
               onChanged:
                   _saving ? null : (v) => setState(() => _courseId = v!),
@@ -823,7 +867,7 @@ class _AssignmentDetailSheetState
             ),
             const SizedBox(height: 4),
             Text(
-              '${a.course.code} \u00b7 ${_cap(a.type)}${a.weight != null ? ' \u00b7 ${a.weight}%' : ''}',
+              '${a.course.title} \u00b7 ${_cap(a.type)}${a.weight != null ? ' \u00b7 ${a.weight}%' : ''}',
               style: text.bodySmall?.copyWith(
                 color: colors.mutedForeground,
                 fontWeight: FontWeight.w600,
@@ -999,7 +1043,7 @@ class _GradesTab extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      course.code,
+                      course.title,
                       style: text.titleSmall
                           ?.copyWith(fontWeight: FontWeight.w800),
                     ),
@@ -1107,7 +1151,7 @@ class _TimelineTab extends ConsumerWidget {
                             const SizedBox(width: 8),
                           ],
                           Text(
-                            isAll ? 'All' : course.code,
+                            isAll ? 'All' : course.title,
                             style: text.labelMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: (!isAll && selected)
@@ -1241,7 +1285,7 @@ List<Widget> _buildTimelineGroups(
             : null);
     final rightAlert = isCountdown && rightText != null;
     final subtitle =
-        '${a.course.code} \u00b7 ${_cap(a.type)}${a.weight != null ? ' \u00b7 ${a.weight}%' : ''}';
+        '${a.course.title} \u00b7 ${_cap(a.type)}${a.weight != null ? ' \u00b7 ${a.weight}%' : ''}';
     final variant = a.gradePct != null
         ? _TimelineVariant.progress
         : (isCountdown
@@ -1299,7 +1343,7 @@ List<Widget> _buildTimelineGroups(
         variant: isCountdown
             ? _TimelineVariant.countdown
             : _TimelineVariant.simple,
-        title: '${ex.course.code} · ${_cap(ex.kind)}',
+        title: '${ex.course.title} · ${_cap(ex.kind)}',
         subtitle:
             '${ex.course.title}${ex.location != null ? ' · ${ex.location}' : ''}',
         rightText: isCountdown
@@ -1482,13 +1526,18 @@ class _TimelineItemCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colors.border),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.border.withValues(alpha: 0.8)),
         boxShadow: [
           BoxShadow(
             color: colors.shadowCard,
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: accentColor.withValues(alpha: 0.06),
             blurRadius: 8,
-            offset: const Offset(0, 3),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -1496,16 +1545,22 @@ class _TimelineItemCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 4,
+            width: 5,
             height: 72,
-            margin:
-                const EdgeInsets.only(left: 8, top: 10, bottom: 10),
+            margin: const EdgeInsets.only(left: 10, top: 12, bottom: 12),
             decoration: BoxDecoration(
               color: accentColor,
               borderRadius: BorderRadius.circular(999),
+              boxShadow: [
+                BoxShadow(
+                  color: accentColor.withValues(alpha: 0.35),
+                  blurRadius: 6,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Padding(
             padding: const EdgeInsets.fromLTRB(0, 12, 12, 12),
             child: _LeadingIcon(leading: leading),
@@ -1603,23 +1658,45 @@ class _LeadingIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = UniTrackColors.of(context);
-    final icon = switch (leading) {
-      _Leading.check => Icons.check_rounded,
-      _Leading.megaphone => Icons.campaign_outlined,
-      _Leading.clipboard => Icons.content_paste_rounded,
-      _Leading.book => Icons.menu_book_rounded,
+    final primary = Theme.of(context).colorScheme.primary;
+    final (icon, bgColor, iconColor) = switch (leading) {
+      _Leading.check => (
+          Icons.check_rounded,
+          const Color(0xFF22C55E).withValues(alpha: 0.18),
+          const Color(0xFF16A34A),
+        ),
+      _Leading.megaphone => (
+          Icons.campaign_rounded,
+          primary.withValues(alpha: 0.15),
+          primary,
+        ),
+      _Leading.clipboard => (
+          Icons.assignment_rounded,
+          primary.withValues(alpha: 0.15),
+          primary,
+        ),
+      _Leading.book => (
+          Icons.menu_book_rounded,
+          const Color(0xFFF59E0B).withValues(alpha: 0.2),
+          const Color(0xFFD97706),
+        ),
     };
 
     return Container(
-      width: 28,
-      height: 28,
+      width: 32,
+      height: 32,
       decoration: BoxDecoration(
-        color: colors.border.withValues(alpha: 0.35),
+        color: bgColor,
         shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: iconColor.withValues(alpha: 0.25),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Icon(icon,
-          size: 16, color: Colors.black.withValues(alpha: 0.6)),
+      child: Icon(icon, size: 18, color: iconColor),
     );
   }
 }
@@ -1680,41 +1757,64 @@ class _GpaPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = UniTrackColors.of(context);
     final text = Theme.of(context).textTheme;
+    final primary = Theme.of(context).colorScheme.primary;
+    final isPlaceholder = value == '--';
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colors.border),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            primary.withValues(alpha: 0.12),
+            primary.withValues(alpha: 0.06),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: primary.withValues(alpha: 0.25),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: colors.shadowCard,
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: primary.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            'GPA',
-            style: text.labelSmall?.copyWith(
-              color: colors.mutedForeground,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.5,
-            ),
+          Icon(
+            Icons.school_rounded,
+            size: 20,
+            color: isPlaceholder ? colors.mutedForeground : primary,
           ),
-          const SizedBox(height: 1),
-          Text(
-            value,
-            style: text.titleSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.2,
-            ),
+          const SizedBox(width: 8),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'GPA',
+                style: text.labelSmall?.copyWith(
+                  color: colors.mutedForeground,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 0),
+              Text(
+                value,
+                style: text.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
+                  color: isPlaceholder ? colors.mutedForeground : primary,
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -266,7 +266,7 @@ class AnnouncementsExamsPage extends ConsumerWidget {
                       items: courses
                           .map((c) => DropdownMenuItem(
                                 value: c.id,
-                                child: Text(c.code),
+                                child: Text(c.title),
                               ))
                           .toList(),
                       onChanged: saving
@@ -361,7 +361,7 @@ class AnnouncementsExamsPage extends ConsumerWidget {
                               NotificationService().scheduleExamReminder(
                                 id: startsAt.millisecondsSinceEpoch ~/
                                     1000,
-                                courseCode: course.code,
+                                courseCode: course.title,
                                 kind: kind,
                                 startsAt: startsAt,
                               );
@@ -860,7 +860,7 @@ class _ExamsTab extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Delete exam?'),
         content: Text(
-            'Delete "${e.course.code} ${_capLocal(e.kind)}"? This cannot be undone.'),
+            'Delete "${e.course.title} ${_capLocal(e.kind)}"? This cannot be undone.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
@@ -932,7 +932,7 @@ class _ExamCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${item.course.code} · ${_capLocal(item.kind)}',
+                  '${item.course.title} · ${_capLocal(item.kind)}',
                   style: text.titleSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
