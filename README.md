@@ -1,66 +1,89 @@
-## UniTrack
+# UniTrack
 
-UniTrack is a student-focused academic tracker with:
-- a **TypeScript / Express backend API** (`backend`)
-- a **Flutter mobile app** (`unitrack_flutter`)
+A student-focused academic tracker built with a **TypeScript / Express** backend and a **Flutter** mobile app.
 
-It helps students manage **courses, assignments, announcements, exams, and a unified timeline**.
+UniTrack helps students manage **courses, assignments, announcements, exams**, and view everything on a **unified timeline**. It also includes **AI-powered features** like announcement summaries and daily study plans.
 
-### Repository structure
+---
 
-- **`backend`**: Express API, Prisma schema/migrations, seed script
-- **`unitrack_flutter`**: Flutter app (Riverpod + Dio + secure token storage)
+## Repository structure
 
-### Tech stack
+```
+UniTrack/
+├── backend/                 # Express API + Prisma ORM + SQLite
+│   ├── src/
+│   │   ├── server.ts        # All API routes
+│   │   └── lib/
+│   │       └── ai.ts        # Groq AI integration
+│   ├── prisma/
+│   │   ├── schema.prisma    # Database schema
+│   │   ├── migrations/      # Migration history
+│   │   └── seed.ts          # Sample data seeder
+│   ├── .env.example
+│   └── package.json
+│
+├── unitrack_flutter/        # Flutter mobile app
+│   └── lib/
+│       ├── main.dart        # App entry, themes
+│       ├── core/            # Providers, config, API client
+│       ├── features/        # Repositories & data models
+│       └── ui/              # Screens & widgets
+│
+└── docs/
+    └── UI_ANALYSIS.md       # UI improvement tracker
+```
 
-- **Backend**: Node.js, TypeScript, Express, Prisma, SQLite (default), JWT auth
-- **Mobile**: Flutter, Riverpod, Dio, Flutter Secure Storage
+## Tech stack
+
+| Layer | Technologies |
+|-------|-------------|
+| **Backend** | Node.js, TypeScript, Express, Prisma, SQLite (default), JWT auth |
+| **Mobile** | Flutter 3.8+, Riverpod, Dio, Flutter Secure Storage, Google Fonts |
+| **AI** | Groq API (Llama 3) for summaries and daily plans |
 
 ---
 
 ## 1. Prerequisites
 
-You should have these installed:
-
 - **Node.js 20+** and **npm**
 - **Flutter SDK 3.8+**
-- For running the app on a device/emulator:
-  - **Android Studio** (Android emulator), or
-  - **Xcode** (iOS simulator, on macOS)
+- **Android Studio** (Android emulator) or **Xcode** (iOS simulator, macOS only)
 
 ---
 
-## 2. Backend setup (Node + Prisma)
+## 2. Backend setup
 
-All commands below are intended to be run **from the project root folder** (`UniTrack`).
+All commands below run from inside the `backend/` folder.
 
 ### 2.1 Create `.env`
-
-In a terminal:
 
 ```bash
 cd backend
 ```
 
-On **Windows PowerShell**, copy the example env file with:
+**Windows PowerShell:**
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-On **macOS / Linux**, use:
+**macOS / Linux:**
 
 ```bash
 cp .env.example .env
 ```
 
-Open `.env` and, at minimum, change:
+Open `.env` and set:
 
-- **`JWT_SECRET`** to a long random string (at least 16 characters).
+| Variable | Required | Default | Notes |
+|----------|----------|---------|-------|
+| `JWT_SECRET` | Yes | `dev-secret-change-me` | Change to a long random string (16+ chars) |
+| `DATABASE_URL` | No | `file:./dev.db` | SQLite file path |
+| `PORT` | No | `3001` | API port |
+| `JWT_EXPIRES_IN` | No | `7d` | Token expiry |
+| `GROQ_API_KEY` | No | — | Enables AI features (summaries + daily plan) |
 
-### 2.2 Install dependencies and prepare the database
-
-Still inside the `backend` folder:
+### 2.2 Install and prepare the database
 
 ```bash
 npm install
@@ -69,166 +92,157 @@ npm run prisma:migrate
 npm run seed
 ```
 
-This will:
-- install npm packages
-- generate the Prisma client
-- apply database migrations
-- create sample data (batches, users, courses, announcement)
+This installs dependencies, generates the Prisma client, applies migrations, and seeds sample data (batches, users, courses, announcements).
 
-By default, the database is a **SQLite file** defined by `DATABASE_URL` in `.env` (`file:./dev.db`).
-
-### 2.3 Run the backend
-
-Start the API server:
+### 2.3 Start the API
 
 ```bash
 npm run dev
 ```
 
-The API listens on **`http://localhost:3001`** (configurable via `PORT` in `.env`).
-
-You can quickly verify it with:
+The API listens on **`http://localhost:3001`**. Verify with:
 
 ```bash
 curl http://localhost:3001/health
+# → { "ok": true }
 ```
-
-You should get `{ "ok": true }`.
 
 ---
 
 ## 3. Flutter app setup
 
-Open a **new terminal** (keep the backend running) and from the project root:
+Open a **new terminal** (keep the backend running):
 
 ```bash
 cd unitrack_flutter
 flutter pub get
-```
-
-### 3.1 Run the app
-
-With an emulator/simulator or device attached:
-
-```bash
 flutter run
 ```
 
-The app chooses the API base URL based on the platform:
+The app auto-detects the API URL by platform:
 
-- **Android emulator**: `http://10.0.2.2:3001`
-- **iOS simulator / desktop / web**: `http://localhost:3001`
+| Platform | Base URL |
+|----------|----------|
+| Android emulator | `http://10.0.2.2:3001` |
+| iOS simulator / desktop / web | `http://localhost:3001` |
 
-This logic lives in `unitrack_flutter/lib/core/config.dart` and providers in `unitrack_flutter/lib/core/providers.dart`.
-
----
-
-## 4. Backend configuration
-
-Environment variables are defined in `backend/.env.example`:
-
-- **`DATABASE_URL`** – default `file:./dev.db` (SQLite file)
-- **`PORT`** – default `3001`
-- **`JWT_SECRET`** – must be at least 16 characters (required for signing tokens)
-- **`JWT_EXPIRES_IN`** – default `7d`
- - **`GROQ_API_KEY`** – optional; set this to enable AI-powered announcement summaries (see section 8)
-
-You **must** set a strong `JWT_SECRET` before using the app in any non-local environment.
+This is configured in `lib/core/config.dart`.
 
 ---
 
-## 5. Seeded development accounts
+## 4. Seeded accounts
 
-After running `npm run seed` in `backend`, these accounts are available:
+After running `npm run seed`, these accounts are available:
 
-- **Admin**: `admin@unitrack.dev` / `admin123`
-- **Publisher**: `publisher@unitrack.dev` / `publisher123`
-- **Student**: `student@unitrack.dev` / `student123`
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | `admin@unitrack.dev` | `admin123` |
+| Publisher | `publisher@unitrack.dev` | `publisher123` |
+| Student | `student@unitrack.dev` | `student123` |
 
-You can log in with these users from the Flutter app to explore different roles.
+**Role permissions:**
+
+- **Admin / Publisher**: Can create announcements and exams
+- **Student**: Can create assignments, view announcements and exams
+
+---
+
+## 5. Features
+
+### Core
+
+- **Courses** — Add and manage courses with color coding and credit tracking
+- **Assignments** — Track assignments with due dates, grades, and weights
+- **Announcements** — Batch-wide announcements from admins/publishers
+- **Exams** — Schedule and track exams with room info and duration
+- **Timeline** — Unified chronological view of all items across courses
+- **GPA calculation** — Automatic GPA from graded assignments
+
+### UI / UX
+
+- Light and **dark theme** with toggle
+- **First-run onboarding** screen
+- Skeleton loading shimmer effects
+- Staggered fade-in animations
+- Consistent empty states and error handling with retry
+- Bottom sheet forms with drag handles
+
+### AI-powered (requires `GROQ_API_KEY`)
+
+- **Announcement TL;DR** — Summarizes long announcements into bullet points + key dates
+- **Daily study plan** — "What should I work on today?" generates a prioritized plan from upcoming deadlines
 
 ---
 
 ## 6. Useful commands
 
-### 6.1 Backend (`backend` folder)
+### Backend (`backend/`)
 
-- **`npm run dev`** – run API in watch mode (recommended during development)
-- **`npm run build`** – compile TypeScript to `dist`
-- **`npm run start`** – run compiled API from `dist`
-- **`npm run prisma:migrate`** – apply development migrations
-- **`npm run seed`** – seed sample data
-- **`npm run db:up` / `npm run db:down`** – start/stop optional Postgres container (see `docker-compose.yml`)
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Run API in watch mode |
+| `npm run build` | Compile TypeScript to `dist/` |
+| `npm run start` | Run compiled API |
+| `npm run prisma:migrate` | Apply database migrations |
+| `npm run prisma:generate` | Regenerate Prisma client |
+| `npm run seed` | Seed sample data |
 
-### 6.2 Flutter (`unitrack_flutter` folder)
+### Flutter (`unitrack_flutter/`)
 
-- **`flutter pub get`** – install dependencies
-- **`flutter run`** – run the app
-- **`flutter test`** – run tests
-
----
-
-## 7. API overview
-
-Base URL (backend): **`http://localhost:3001`**
-
-High-level endpoints:
-
-- **Health**
-  - `GET /health`
-- **Auth**
-  - `POST /auth/register`
-  - `POST /auth/login`
-  - `GET /auth/me`
-  - `PATCH /auth/password`
-- **Batches**
-  - `GET /batches`
-- **Courses**
-  - `GET /courses`
-  - `POST /courses`
-  - `PATCH /courses/:id`
-- **Assignments**
-  - `GET /assignments`
-  - `POST /assignments`
-  - `PATCH /assignments/:id`
-  - `DELETE /assignments/:id`
-- **Announcements**
-  - `GET /batches/:batchId/announcements`
-  - `POST /batches/:batchId/announcements`
-  - `DELETE /batches/:batchId/announcements/:id`
-- **Exams**
-  - `GET /batches/:batchId/exams`
-  - `POST /batches/:batchId/exams`
-  - `DELETE /batches/:batchId/exams/:id`
-- **Timeline**
-  - `GET /timeline`
-
-Most endpoints (everything except `/health`, `/batches`, `POST /auth/register`, `POST /auth/login`) require:
-
-- header **`Authorization: Bearer <token>`**, where `<token>` is the JWT obtained from `POST /auth/login`.
+| Command | Description |
+|---------|-------------|
+| `flutter pub get` | Install dependencies |
+| `flutter run` | Run the app |
+| `flutter analyze` | Static analysis |
+| `flutter test` | Run tests |
 
 ---
 
-## 8. AI-powered features
+## 7. API endpoints
 
-### 8.1 Announcement summaries ("AI TL;DR")
+Base URL: **`http://localhost:3001`**
 
-If `GROQ_API_KEY` is set in `backend/.env`, the backend calls the Groq API and exposes:
+All endpoints except health, batches, register, and login require `Authorization: Bearer <token>`.
 
-- `POST /batches/:batchId/announcements/:id/summary`
+### Auth
 
-The Flutter app surfaces this as an **“AI TL;DR”** button on each announcement card. It returns:
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/auth/register` | Create a new account |
+| `POST` | `/auth/login` | Sign in, returns JWT |
+| `GET` | `/auth/me` | Current user info |
+| `PATCH` | `/auth/password` | Change password |
 
-- a short summary of the announcement
-- key bullet points
-- a list of important dates mentioned (if any)
+### Data
 
-If `GROQ_API_KEY` is not configured or the AI call fails, the app simply shows a friendly error instead.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/batches` | List all batches |
+| `GET` | `/courses` | List user's courses |
+| `POST` | `/courses` | Create a course |
+| `PATCH` | `/courses/:id` | Update a course |
+| `GET` | `/assignments` | List user's assignments |
+| `POST` | `/assignments` | Create an assignment |
+| `PATCH` | `/assignments/:id` | Update / grade an assignment |
+| `DELETE` | `/assignments/:id` | Delete an assignment |
+| `GET` | `/batches/:batchId/announcements` | List announcements |
+| `POST` | `/batches/:batchId/announcements` | Create an announcement |
+| `DELETE` | `/batches/:batchId/announcements/:id` | Delete an announcement |
+| `GET` | `/batches/:batchId/exams` | List exams |
+| `POST` | `/batches/:batchId/exams` | Create an exam |
+| `DELETE` | `/batches/:batchId/exams/:id` | Delete an exam |
+| `GET` | `/timeline` | Unified timeline |
+
+### AI
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/batches/:batchId/announcements/:id/summary` | AI summary of announcement |
+| `POST` | `/ai/today-plan` | AI-generated daily study plan |
 
 ---
 
-## 9. Database notes
+## 8. Database notes
 
-- The current **Prisma datasource is SQLite** by default, using `DATABASE_URL` from `.env`.
-- A **Postgres Docker setup** is available in `backend/docker-compose.yml` if you want to switch databases (you’ll need to update `DATABASE_URL` accordingly and re-run migrations).
-
+- Default database is **SQLite** (`file:./dev.db`).
+- A **Postgres Docker** setup is available in `backend/docker-compose.yml` — update `DATABASE_URL` and re-run migrations to switch.
