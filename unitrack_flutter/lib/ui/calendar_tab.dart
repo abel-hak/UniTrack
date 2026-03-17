@@ -298,14 +298,9 @@ class _CalendarTabState extends ConsumerState<CalendarTab>
   }
 
   double _gridHeight(BuildContext context) {
-    final firstOfMonth =
-        DateTime(_focusedMonth.year, _focusedMonth.month, 1);
-    final daysInMonth =
-        DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0).day;
-    final startWeekday = firstOfMonth.weekday;
-    final totalCells = (startWeekday - 1) + daysInMonth;
-    final rows = (totalCells / 7).ceil();
-    return rows * 48.0;
+    // Always allocate for 6 rows (the max any month can have)
+    // so page transitions between months never overflow.
+    return 6 * 48.0 + 18.0; // 306
   }
 
   Map<DateTime, List<_CalendarEvent>> _buildEventMap(TimelineBundle bundle) {
