@@ -139,7 +139,16 @@ class _HomePageState extends ConsumerState<HomePage>
                         controller: _tabController,
                         children: [
                           _TimelineTab(authBatchId: auth.batchId),
-                          const CalendarTab(),
+                          CalendarTab(
+                            onAssignmentTap: (a) =>
+                                _openAssignmentDetail(context, a),
+                            onExamTap: (ex) =>
+                                _showExamInfo(context, ex),
+                            onAnnouncementTap: (an) =>
+                                _showAnnouncementInfo(context, an),
+                            onAddFromDate: (date) =>
+                                _openAddAssignmentSheet(context, date: date),
+                          ),
                           const _GradesTab(),
                         ],
                       ),
@@ -162,7 +171,10 @@ class _HomePageState extends ConsumerState<HomePage>
     );
   }
 
-  Future<void> _openAddAssignmentSheet(BuildContext context) async {
+  Future<void> _openAddAssignmentSheet(
+    BuildContext context, {
+    DateTime? date,
+  }) async {
     final courses =
         ref.read(coursesProvider).valueOrNull ?? const <Course>[];
     if (courses.isEmpty) {
@@ -191,10 +203,226 @@ class _HomePageState extends ConsumerState<HomePage>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return _AddAssignmentSheet(courses: courses);
+        return _AddAssignmentSheet(courses: courses, initialDate: date);
       },
     );
     ref.invalidate(timelineProvider);
+  }
+
+  Future<void> _openAssignmentDetail(
+    BuildContext context,
+    TimelineAssignment assignment,
+  ) async {
+    final changed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AssignmentDetailSheet(assignment: assignment),
+    );
+    if (changed == true) {
+      ref.invalidate(timelineProvider);
+    }
+  }
+
+  void _showExamInfo(BuildContext context, TimelineExam exam) {
+    final colors = UniTrackColors.of(context);
+    final text = Theme.of(context).textTheme;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Center(child: SheetHandle()),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD97706).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.menu_book_rounded,
+                        size: 22, color: Color(0xFFD97706)),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          exam.course.title,
+                          style: text.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        Text(
+                          '${_cap(exam.kind)} exam',
+                          style: text.bodySmall?.copyWith(
+                            color: colors.mutedForeground,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _InfoRow(
+                icon: Icons.calendar_today_rounded,
+                label: 'Date',
+                value: DateFormat('EEEE, MMMM d, y').format(exam.startsAt),
+              ),
+              const SizedBox(height: 10),
+              _InfoRow(
+                icon: Icons.access_time_rounded,
+                label: 'Time',
+                value: DateFormat('h:mm a').format(exam.startsAt),
+              ),
+              if (exam.location != null && exam.location!.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                _InfoRow(
+                  icon: Icons.location_on_rounded,
+                  label: 'Location',
+                  value: exam.location!,
+                ),
+              ],
+              if (exam.notes != null && exam.notes!.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                _InfoRow(
+                  icon: Icons.notes_rounded,
+                  label: 'Notes',
+                  value: exam.notes!,
+                ),
+              ],
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAnnouncementInfo(
+      BuildContext context, TimelineAnnouncement announcement) {
+    final colors = UniTrackColors.of(context);
+    final text = Theme.of(context).textTheme;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Center(child: SheetHandle()),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: colors.mutedForeground.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.campaign_rounded,
+                        size: 22, color: colors.mutedForeground),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          announcement.title,
+                          style: text.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        Text(
+                          'By ${announcement.authorName} · ${DateFormat('MMM d').format(announcement.createdAt)}',
+                          style: text.bodySmall?.copyWith(
+                            color: colors.mutedForeground,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                announcement.body,
+                style: text.bodyMedium?.copyWith(height: 1.5),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _cap(String s) =>
+      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
+}
+
+// ─── Shared info row for detail sheets ───────────────────────
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _InfoRow({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = UniTrackColors.of(context);
+    final text = Theme.of(context).textTheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: colors.mutedForeground),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 60,
+          child: Text(
+            label,
+            style: text.bodySmall?.copyWith(
+              color: colors.mutedForeground,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: text.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -582,8 +810,9 @@ class _AddCourseSheetState extends ConsumerState<_AddCourseSheet> {
 
 class _AddAssignmentSheet extends ConsumerStatefulWidget {
   final List<Course> courses;
+  final DateTime? initialDate;
 
-  const _AddAssignmentSheet({required this.courses});
+  const _AddAssignmentSheet({required this.courses, this.initialDate});
 
   @override
   ConsumerState<_AddAssignmentSheet> createState() =>
@@ -593,7 +822,7 @@ class _AddAssignmentSheet extends ConsumerStatefulWidget {
 class _AddAssignmentSheetState extends ConsumerState<_AddAssignmentSheet> {
   late String _courseId;
   String _type = 'assignment';
-  DateTime _dueAt = DateTime.now().add(const Duration(days: 1));
+  late DateTime _dueAt;
   final _title = TextEditingController();
   final _weight = TextEditingController();
   bool _saving = false;
@@ -602,6 +831,12 @@ class _AddAssignmentSheetState extends ConsumerState<_AddAssignmentSheet> {
   void initState() {
     super.initState();
     _courseId = widget.courses.first.id;
+    final d = widget.initialDate;
+    if (d != null) {
+      _dueAt = DateTime(d.year, d.month, d.day, 23, 59);
+    } else {
+      _dueAt = DateTime.now().add(const Duration(days: 1));
+    }
   }
 
   @override

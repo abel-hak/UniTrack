@@ -7,7 +7,18 @@ import '../main.dart';
 import '../features/timeline/models.dart';
 
 class CalendarTab extends ConsumerStatefulWidget {
-  const CalendarTab({super.key});
+  final void Function(TimelineAssignment)? onAssignmentTap;
+  final void Function(TimelineExam)? onExamTap;
+  final void Function(TimelineAnnouncement)? onAnnouncementTap;
+  final void Function(DateTime date)? onAddFromDate;
+
+  const CalendarTab({
+    super.key,
+    this.onAssignmentTap,
+    this.onExamTap,
+    this.onAnnouncementTap,
+    this.onAddFromDate,
+  });
 
   @override
   ConsumerState<CalendarTab> createState() => _CalendarTabState();
@@ -257,6 +268,25 @@ class _CalendarTabState extends ConsumerState<CalendarTab>
                           ),
                         ),
                       ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: IconButton(
+                        onPressed: _handleAddFromDate,
+                        icon: const Icon(Icons.add_rounded, size: 16),
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                        tooltip: 'Add assignment',
+                        style: IconButton.styleFrom(
+                          backgroundColor: primary.withValues(alpha: 0.1),
+                          foregroundColor: primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                   const Spacer(),
                   _LegendDot(color: primary, label: 'Due'),
@@ -275,7 +305,10 @@ class _CalendarTabState extends ConsumerState<CalendarTab>
             // ── Events list ──
             Expanded(
               child: selectedEvents.isEmpty
-                  ? _EmptyDay(selectedDay: _selectedDay)
+                  ? _EmptyDay(
+                      selectedDay: _selectedDay,
+                      onAdd: _handleAddFromDate,
+                    )
                   : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
                       itemCount: selectedEvents.length,
@@ -286,6 +319,7 @@ class _CalendarTabState extends ConsumerState<CalendarTab>
                           child: _EventCard(
                             event: ev,
                             index: i,
+                            onTap: () => _handleEventTap(ev),
                           ),
                         );
                       },
@@ -295,6 +329,24 @@ class _CalendarTabState extends ConsumerState<CalendarTab>
         );
       },
     );
+  }
+
+  void _handleEventTap(_CalendarEvent ev) {
+    final src = ev.source;
+    if (src == null) return;
+    switch (ev.type) {
+      case _EventType.assignment:
+        widget.onAssignmentTap?.call(src as TimelineAssignment);
+      case _EventType.exam:
+        widget.onExamTap?.call(src as TimelineExam);
+      case _EventType.announcement:
+        widget.onAnnouncementTap?.call(src as TimelineAnnouncement);
+    }
+  }
+
+  void _handleAddFromDate() {
+    if (_selectedDay == null) return;
+    widget.onAddFromDate?.call(_selectedDay!);
   }
 
   double _gridHeight(BuildContext context) {
@@ -316,6 +368,7 @@ class _CalendarTabState extends ConsumerState<CalendarTab>
         time: DateFormat('h:mm a').format(a.dueAt),
         colorKey: a.course.colorKey,
         gradePct: a.gradePct,
+        source: a,
       ));
     }
 
@@ -327,6 +380,7 @@ class _CalendarTabState extends ConsumerState<CalendarTab>
         title: an.title,
         subtitle: 'By ${an.authorName}',
         time: DateFormat('h:mm a').format(an.createdAt),
+        source: an,
       ));
     }
 
@@ -339,6 +393,7 @@ class _CalendarTabState extends ConsumerState<CalendarTab>
         subtitle: ex.location ?? '',
         time: DateFormat('h:mm a').format(ex.startsAt),
         colorKey: ex.course.colorKey,
+        source: ex,
       ));
     }
 
@@ -605,12 +660,14 @@ class _LegendDot extends StatelessWidget {
 
 class _EmptyDay extends StatelessWidget {
   final DateTime? selectedDay;
-  const _EmptyDay({required this.selectedDay});
+  final VoidCallback? onAdd;
+  const _EmptyDay({required this.selectedDay, this.onAdd});
 
   @override
   Widget build(BuildContext context) {
     final colors = UniTrackColors.of(context);
     final text = Theme.of(context).textTheme;
+    final primary = Theme.of(context).colorScheme.primary;
 
     return Center(
       child: Column(
@@ -648,6 +705,21 @@ class _EmptyDay extends StatelessWidget {
               color: colors.mutedForeground.withValues(alpha: 0.7),
             ),
           ),
+          if (selectedDay != null && onAdd != null) ...[
+            const SizedBox(height: 16),
+            FilledButton.tonalIcon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Add assignment'),
+              style: FilledButton.styleFrom(
+                backgroundColor: primary.withValues(alpha: 0.1),
+                foregroundColor: primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -666,6 +738,7 @@ class _CalendarEvent {
   final String time;
   final String? colorKey;
   final int? gradePct;
+  final Object? source;
 
   const _CalendarEvent({
     required this.type,
@@ -675,6 +748,7 @@ class _CalendarEvent {
     required this.time,
     this.colorKey,
     this.gradePct,
+    this.source,
   });
 }
 
@@ -683,8 +757,9 @@ class _CalendarEvent {
 class _EventCard extends StatelessWidget {
   final _CalendarEvent event;
   final int index;
+  final VoidCallback? onTap;
 
-  const _EventCard({required this.event, required this.index});
+  const _EventCard({required this.event, required this.index, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -711,9 +786,15 @@ class _EventCard extends StatelessWidget {
         ),
     };
 
-    return Container(
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: isDark
             ? Border.all(color: colors.border.withValues(alpha: 0.4))
@@ -867,6 +948,8 @@ class _EventCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    ),
       ),
     );
   }
