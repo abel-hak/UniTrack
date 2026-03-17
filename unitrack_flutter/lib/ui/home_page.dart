@@ -8,6 +8,8 @@ import '../features/courses/models.dart';
 import '../features/timeline/models.dart';
 import '../core/notifications/notification_service.dart';
 import 'announcements_exams_page.dart';
+import 'calendar_tab.dart';
+import 'course_detail_page.dart';
 import 'profile_page.dart';
 import 'widgets/empty_state.dart';
 import 'widgets/skeleton_loading.dart';
@@ -27,7 +29,7 @@ class _HomePageState extends ConsumerState<HomePage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -128,7 +130,7 @@ class _HomePageState extends ConsumerState<HomePage>
                       padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
                       child: _SegmentTabs(
                         controller: _tabController,
-                        labels: const ['Timeline', 'Grades'],
+                        labels: const ['Timeline', 'Calendar', 'Grades'],
                       ),
                     ),
 
@@ -137,6 +139,7 @@ class _HomePageState extends ConsumerState<HomePage>
                         controller: _tabController,
                         children: [
                           _TimelineTab(authBatchId: auth.batchId),
+                          const CalendarTab(),
                           const _GradesTab(),
                         ],
                       ),
@@ -1057,61 +1060,81 @@ class _GradesTab extends ConsumerWidget {
         final gradeLabel =
             '${pct.toStringAsFixed(0)}% $gpaLetter · ${course.credits}cr';
 
-        return Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: colors.border),
-            boxShadow: [
-              BoxShadow(
-                color: colors.shadowCard,
-                blurRadius: 8,
-                offset: const Offset(0, 3),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => CourseDetailPage(course: course),
               ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                margin: const EdgeInsets.only(right: 12),
-                decoration: BoxDecoration(
-                  color: _courseDotColor(context, course.colorKey),
-                  shape: BoxShape.circle,
-                ),
+            ),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: isDark
+                    ? Border.all(color: colors.border.withValues(alpha: 0.5))
+                    : null,
+                boxShadow: [
+                  BoxShadow(
+                    color: colors.shadowCard,
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      course.title,
-                      style: text.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w800),
+              child: Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: _courseDotColor(context, course.colorKey),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      course.title,
-                      style: text.bodySmall?.copyWith(
-                        color: colors.mutedForeground,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          course.title,
+                          style: text.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          course.code,
+                          style: text.bodySmall?.copyWith(
+                            color: colors.mutedForeground,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    gradeLabel,
+                    style: text.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: colors.mutedForeground,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 18,
+                    color: colors.mutedForeground,
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Text(
-                gradeLabel,
-                style: text.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: colors.mutedForeground,
-                ),
-              ),
-            ],
+            ),
           ),
         );
       },
@@ -1164,6 +1187,14 @@ class _TimelineTab extends ConsumerWidget {
                     onTap: () => ref
                         .read(activeCourseIdProvider.notifier)
                         .state = isAll ? null : course.id,
+                    onLongPress: isAll
+                        ? null
+                        : () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    CourseDetailPage(course: course),
+                              ),
+                            ),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 140),
                       padding: const EdgeInsets.symmetric(
