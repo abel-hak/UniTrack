@@ -530,20 +530,16 @@ class _AnnouncementCard extends StatelessWidget {
     final text = Theme.of(context).textTheme;
 
     final primary = Theme.of(context).colorScheme.primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.border.withValues(alpha: 0.8)),
+        border: isDark ? Border.all(color: colors.border.withValues(alpha: 0.5)) : null,
         boxShadow: [
           BoxShadow(
             color: colors.shadowCard,
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-          BoxShadow(
-            color: primary.withValues(alpha: 0.06),
-            blurRadius: 8,
+            blurRadius: 10,
             offset: const Offset(0, 2),
           ),
         ],
@@ -934,24 +930,18 @@ class _ExamCard extends StatelessWidget {
     const accentExam = Color(0xFFD97706);
     const accentExamBg = Color(0xFFF59E0B);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isUpcoming
-              ? const Color(0xFFE11D48).withValues(alpha: 0.3)
-              : colors.border.withValues(alpha: 0.8),
-        ),
+        border: isUpcoming
+            ? Border.all(color: const Color(0xFFE11D48).withValues(alpha: 0.3))
+            : (isDark ? Border.all(color: colors.border.withValues(alpha: 0.5)) : null),
         boxShadow: [
           BoxShadow(
             color: colors.shadowCard,
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-          BoxShadow(
-            color: accentExam.withValues(alpha: 0.06),
-            blurRadius: 8,
+            blurRadius: 10,
             offset: const Offset(0, 2),
           ),
         ],

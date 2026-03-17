@@ -94,55 +94,37 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     final text = Theme.of(context).textTheme;
     final batchesAsync = ref.watch(batchesProvider);
 
+    final primary = Theme.of(context).colorScheme.primary;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              height: 6,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
-                  ],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              children: [
+                Text(
+                  'Create Account',
+                  style: text.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
                 ),
-              ),
-            ),
-            Expanded(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      Text(
-                        'Create Account',
-                        style: text.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Join UniTrack to manage your academics',
-                        style: text.bodyMedium?.copyWith(
-                          color: colors.mutedForeground,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+                const SizedBox(height: 4),
+                Text(
+                  'Join UniTrack to manage your academics',
+                  style: text.bodyMedium?.copyWith(
+                    color: colors.mutedForeground,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 28),
                       _Field(label: 'Full Name', controller: _name),
                       const SizedBox(height: 12),
                       _Field(label: 'Email', controller: _email),
@@ -179,7 +161,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                           return Container(
                             decoration: BoxDecoration(
                               color: Theme.of(context).colorScheme.surface,
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: colors.border),
                             ),
                             child: DropdownButtonFormField<String>(
@@ -221,44 +203,47 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                           style: text.bodySmall?.copyWith(color: Colors.red.shade700),
                         ),
                       ),
-                      const SizedBox(height: 18),
-                      if (_error != null) ...[
-                        Text(
-                          _error!,
-                          style: text.bodySmall?.copyWith(
-                            color: Colors.red.shade700,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      ElevatedButton(
-                        onPressed: _loading ? null : _submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        child: _loading
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Text(
-                                'Create Account',
-                                style: TextStyle(fontWeight: FontWeight.w800),
-                              ),
+                const SizedBox(height: 20),
+                if (_error != null) ...[
+                  Text(
+                    _error!,
+                    style: text.bodySmall?.copyWith(
+                      color: Colors.red.shade700,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                SizedBox(
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _loading ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ],
+                      elevation: 0,
+                    ),
+                    child: _loading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text(
+                            'Create Account',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700, fontSize: 15),
+                          ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 24),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -299,17 +284,17 @@ class _Field extends StatelessWidget {
             filled: true,
             fillColor: Theme.of(context).colorScheme.surface,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: colors.border),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: colors.border),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide:
-                  BorderSide(color: Theme.of(context).colorScheme.primary),
+                  BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
             ),
           ),
         ),

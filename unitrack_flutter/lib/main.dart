@@ -19,127 +19,144 @@ class UniTrackApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const primary = Color(0xFF1F3A8A); // Deep blue
+    const navy = Color(0xFF1B2A4A);
     final baseTextTheme = ThemeData.light().textTheme;
     final display = GoogleFonts.spaceGroteskTextTheme(baseTextTheme);
     final body = GoogleFonts.interTextTheme(baseTextTheme);
 
-    const lightBackground = Color(0xFFF7F7F7);
-    const lightForeground = Color(0xFF1A1A1A);
-    const lightCard = Color(0xFFFFFFFF);
-    const lightSecondary = Color(0xFFEBEBEB);
-    const lightMuted = Color(0xFF737373);
-    const lightBorder = Color(0xFFE0E0E0);
+    final mergedText = body.copyWith(
+      displayLarge: display.displayLarge,
+      displayMedium: display.displayMedium,
+      displaySmall: display.displaySmall,
+      headlineLarge: display.headlineLarge,
+      headlineMedium: display.headlineMedium,
+      headlineSmall: display.headlineSmall,
+      titleLarge: display.titleLarge,
+      titleMedium: display.titleMedium,
+      titleSmall: display.titleSmall,
+    );
+
+    // ── Light theme: navy-on-white (reference design) ──
+    const ltBg = Color(0xFFF0F2F5);
+    const ltFg = Color(0xFF1A1F36);
+    const ltCard = Colors.white;
+    const ltSecondary = Color(0xFFE8EBF0);
+    const ltMuted = Color(0xFF6B7280);
+    const ltBorder = Color(0xFFDDE1E8);
 
     final lightTheme = ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: lightBackground,
+      scaffoldBackgroundColor: ltBg,
       colorScheme: const ColorScheme.light(
-        primary: primary,
+        primary: navy,
         onPrimary: Colors.white,
-        secondary: lightSecondary,
-        onSecondary: lightForeground,
-        surface: lightCard,
-        onSurface: lightForeground,
-        outline: lightBorder,
+        secondary: ltSecondary,
+        onSecondary: ltFg,
+        surface: ltCard,
+        onSurface: ltFg,
+        outline: ltBorder,
       ),
-      textTheme: body.copyWith(
-        displayLarge: display.displayLarge,
-        displayMedium: display.displayMedium,
-        displaySmall: display.displaySmall,
-        headlineLarge: display.headlineLarge,
-        headlineMedium: display.headlineMedium,
-        headlineSmall: display.headlineSmall,
-        titleLarge: display.titleLarge,
-        titleMedium: display.titleMedium,
-        titleSmall: display.titleSmall,
+      textTheme: mergedText,
+      dividerColor: ltBorder,
+      iconTheme: const IconThemeData(color: ltFg),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: ltCard,
+        foregroundColor: ltFg,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
       ),
-      dividerColor: lightBorder,
-      iconTheme: const IconThemeData(color: lightForeground),
       inputDecorationTheme: InputDecorationTheme(
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: primary, width: 2),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: navy, width: 2),
         ),
-        focusColor: primary,
+        focusColor: navy,
         filled: true,
-        fillColor: lightCard,
+        fillColor: ltCard,
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: primary,
+        backgroundColor: navy,
         foregroundColor: Colors.white,
+        elevation: 4,
         shape: CircleBorder(),
+      ),
+      cardTheme: CardThemeData(
+        color: ltCard,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     ).copyWith(
       extensions: <ThemeExtension<dynamic>>[
         const UniTrackColors(
-          mutedForeground: lightMuted,
-          border: lightBorder,
-          shadowCard: Color(0x0A000000),
-          shadowElevated: Color(0x14000000),
-          shadowFab: Color(0x591F3A8A),
-          courseYellow: Color(0xFFFFC800),
-          courseTeal: Color(0xFF4B7D89),
-          courseTerracotta: Color(0xFFC05D35),
-          courseSlate: Color(0xFF6E7A86),
-          timelineLine: Color(0xFFD1D1D1),
+          mutedForeground: ltMuted,
+          border: ltBorder,
+          shadowCard: Color(0x12000000),
+          shadowElevated: Color(0x1A000000),
+          shadowFab: Color(0x401B2A4A),
+          courseYellow: Color(0xFFF59E0B),
+          courseTeal: Color(0xFF0D9488),
+          courseTerracotta: Color(0xFFDC6B3A),
+          courseSlate: Color(0xFF64748B),
+          timelineLine: Color(0xFFD1D5DB),
         ),
       ],
     );
 
-    // Tailwind Slate scale — proven high-contrast dark palette
-    const darkBackground = Color(0xFF0F172A);   // slate-900
-    const darkForeground = Color(0xFFF1F5F9);   // slate-100
-    const darkCard = Color(0xFF1E293B);         // slate-800 (clearly lighter)
-    const darkElevated = Color(0xFF334155);      // slate-700 (chips, segments)
-    const darkMuted = Color(0xFF94A3B8);        // slate-400
-    const darkBorder = Color(0xFF475569);       // slate-600 (very visible)
+    // ── Dark theme: navy-slate variant ──
+    const dkBg = Color(0xFF0F172A);
+    const dkFg = Color(0xFFF1F5F9);
+    const dkCard = Color(0xFF1E293B);
+    const dkElevated = Color(0xFF334155);
+    const dkMuted = Color(0xFF94A3B8);
+    const dkBorder = Color(0xFF475569);
+    const dkPrimary = Color(0xFF60A5FA);
 
     final darkTheme = ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: darkBackground,
+      scaffoldBackgroundColor: dkBg,
       colorScheme: const ColorScheme.dark(
-        primary: Color(0xFF60A5FA),   // blue-400 — bright on dark
+        primary: dkPrimary,
         onPrimary: Color(0xFF0F172A),
-        secondary: darkElevated,
-        onSecondary: darkForeground,
-        surface: darkCard,
-        onSurface: darkForeground,
-        outline: darkBorder,
+        secondary: dkElevated,
+        onSecondary: dkFg,
+        surface: dkCard,
+        onSurface: dkFg,
+        outline: dkBorder,
       ),
-      textTheme: body.copyWith(
-        displayLarge: display.displayLarge,
-        displayMedium: display.displayMedium,
-        displaySmall: display.displaySmall,
-        headlineLarge: display.headlineLarge,
-        headlineMedium: display.headlineMedium,
-        headlineSmall: display.headlineSmall,
-        titleLarge: display.titleLarge,
-        titleMedium: display.titleMedium,
-        titleSmall: display.titleSmall,
+      textTheme: mergedText,
+      dividerColor: dkBorder,
+      iconTheme: const IconThemeData(color: dkFg),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: dkCard,
+        foregroundColor: dkFg,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
       ),
-      dividerColor: darkBorder,
-      iconTheme: const IconThemeData(color: darkForeground),
       inputDecorationTheme: InputDecorationTheme(
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF60A5FA), width: 2),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: dkPrimary, width: 2),
         ),
-        focusColor: const Color(0xFF60A5FA),
+        focusColor: dkPrimary,
         filled: true,
-        fillColor: darkCard,
+        fillColor: dkCard,
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: Color(0xFF3B82F6),
         foregroundColor: Colors.white,
-        elevation: 6,
+        elevation: 4,
         shape: CircleBorder(),
+      ),
+      cardTheme: CardThemeData(
+        color: dkCard,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     ).copyWith(
       extensions: <ThemeExtension<dynamic>>[
         const UniTrackColors(
-          mutedForeground: darkMuted,
-          border: darkBorder,
+          mutedForeground: dkMuted,
+          border: dkBorder,
           shadowCard: Color(0x50000000),
           shadowElevated: Color(0x60000000),
           shadowFab: Color(0x503B82F6),

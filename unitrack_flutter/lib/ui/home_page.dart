@@ -47,6 +47,11 @@ class _HomePageState extends ConsumerState<HomePage>
     final auth = authState.user!;
     final coursesAsync = ref.watch(coursesProvider);
 
+    final firstName = auth.name.split(' ').first;
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12 ? 'Good morning' : (hour < 17 ? 'Good afternoon' : 'Good evening');
+    final courseCount = coursesAsync.maybeWhen(data: (c) => c.length, orElse: () => 0);
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -57,16 +62,17 @@ class _HomePageState extends ConsumerState<HomePage>
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // ── Header ──
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                      padding: const EdgeInsets.fromLTRB(20, 20, 16, 16),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.surface,
                         boxShadow: [
                           BoxShadow(
-                            color: colors.border.withValues(alpha: 0.5),
-                            blurRadius: 0,
-                            offset: const Offset(0, 1),
+                            color: colors.shadowCard,
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
@@ -76,41 +82,50 @@ class _HomePageState extends ConsumerState<HomePage>
                           Row(
                             children: [
                               Expanded(
-                                child: Text(
-                                  'UniTrack',
-                                  style: text.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -0.3,
-                                  ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Hi $firstName!',
+                                      style: text.headlineSmall?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.3,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      greeting,
+                                      style: text.bodyMedium?.copyWith(
+                                        color: colors.mutedForeground,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
+                              const _ThemeToggle(),
+                              const SizedBox(width: 6),
                               const _HeaderMenu(),
                             ],
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            '${DateFormat('MMMM yyyy').format(DateTime.now())} \u00b7 '
-                            '${coursesAsync.maybeWhen(data: (c) => c.length, orElse: () => 0)} courses',
-                            style: text.bodySmall?.copyWith(
-                              color: colors.mutedForeground,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           Row(
                             children: [
                               _GpaPill(value: _formatGpa(ref.watch(gpaProvider))),
-                              const SizedBox(width: 8),
-                              const _ThemeToggle(),
+                              const SizedBox(width: 12),
+                              _StatChip(
+                                icon: Icons.school_rounded,
+                                label: '$courseCount courses',
+                              ),
                             ],
                           ),
                         ],
                       ),
                     ),
-                    Divider(height: 1, color: colors.border),
 
+                    // ── Segment tabs ──
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
                       child: _SegmentTabs(
                         controller: _tabController,
                         labels: const ['Timeline', 'Grades'],
@@ -133,7 +148,6 @@ class _HomePageState extends ConsumerState<HomePage>
                   bottom: 16,
                   child: FloatingActionButton(
                     onPressed: () => _openAddAssignmentSheet(context),
-                    elevation: 6,
                     child: const Icon(Icons.add, size: 26),
                   ),
                 ),
@@ -188,7 +202,6 @@ class _ThemeToggle extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = UniTrackColors.of(context);
     final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
 
     return SizedBox(
@@ -201,16 +214,48 @@ class _ThemeToggle extends ConsumerWidget {
         },
         icon: Icon(
           isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-          size: 22,
-          color: colors.mutedForeground,
+          size: 20,
         ),
         style: IconButton.styleFrom(
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          side: BorderSide(color: colors.border),
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _StatChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = UniTrackColors.of(context);
+    final text = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: colors.mutedForeground),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: text.labelMedium?.copyWith(
+              color: colors.mutedForeground,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -224,26 +269,14 @@ class _HeaderMenu extends ConsumerWidget {
     final colors = UniTrackColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
 
-    return Container(
+    return SizedBox(
       width: 40,
       height: 40,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.border),
-        boxShadow: [
-          BoxShadow(
-            color: colors.shadowCard,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
       child: PopupMenuButton<String>(
         icon: Icon(
-          Icons.menu_rounded,
-          size: 22,
-          color: colors.mutedForeground,
+          Icons.grid_view_rounded,
+          size: 20,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
         padding: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
@@ -1573,21 +1606,15 @@ class _TimelineItemCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? colors.border.withValues(alpha: 0.7) : colors.border.withValues(alpha: 0.8),
-        ),
+        border: isDark
+            ? Border.all(color: colors.border.withValues(alpha: 0.5))
+            : null,
         boxShadow: [
           BoxShadow(
             color: colors.shadowCard,
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
-          if (!isDark)
-            BoxShadow(
-              color: accentColor.withValues(alpha: 0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
         ],
       ),
       child: Row(
@@ -1622,19 +1649,18 @@ class _TimelineItemCard extends StatelessWidget {
                 children: [
                   if (typeLabel != null) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(20),
+                        color: primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         typeLabel!,
                         style: text.labelSmall?.copyWith(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFF93C5FD)
-                              : primary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 11,
+                          color: primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                          letterSpacing: 0.2,
                         ),
                       ),
                     ),
@@ -1781,36 +1807,34 @@ class _SegmentTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = UniTrackColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     return Container(
-      height: 40,
-      padding: const EdgeInsets.all(4),
+      height: 42,
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.secondary,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colors.border),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: TabBar(
         controller: controller,
         indicator: BoxDecoration(
-          color: primary,
-          borderRadius: BorderRadius.circular(10),
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(9),
           boxShadow: [
             BoxShadow(
-              color: primary.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
             ),
           ],
         ),
         dividerColor: Colors.transparent,
-        labelColor: Colors.white,
-        unselectedLabelColor: colors.mutedForeground,
+        labelColor: primary,
+        unselectedLabelColor: UniTrackColors.of(context).mutedForeground,
         labelStyle: const TextStyle(
             fontWeight: FontWeight.w700, fontSize: 13),
         unselectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w600, fontSize: 13),
+            fontWeight: FontWeight.w500, fontSize: 13),
         tabs: labels.map((t) => Tab(text: t)).toList(),
       ),
     );
@@ -1830,60 +1854,34 @@ class _GpaPill extends StatelessWidget {
     final isPlaceholder = value == '--';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            primary.withValues(alpha: 0.12),
-            primary.withValues(alpha: 0.06),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: primary.withValues(alpha: 0.25),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: primary.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.school_rounded,
-            size: 20,
+            Icons.emoji_events_rounded,
+            size: 18,
             color: isPlaceholder ? colors.mutedForeground : primary,
           ),
           const SizedBox(width: 8),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'GPA',
-                style: text.labelSmall?.copyWith(
-                  color: colors.mutedForeground,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 0),
-              Text(
-                value,
-                style: text.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.2,
-                  color: isPlaceholder ? colors.mutedForeground : primary,
-                ),
-              ),
-            ],
+          Text(
+            'GPA',
+            style: text.labelMedium?.copyWith(
+              color: colors.mutedForeground,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: text.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: isPlaceholder ? colors.mutedForeground : primary,
+            ),
           ),
         ],
       ),

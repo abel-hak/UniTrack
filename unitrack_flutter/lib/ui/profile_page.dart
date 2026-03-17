@@ -95,10 +95,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
     final user = authState.user!;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        elevation: 0,
         centerTitle: false,
         title: Text(
           'Profile',
@@ -117,12 +116,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: colors.border),
+                    border: isDark ? Border.all(color: colors.border.withValues(alpha: 0.5)) : null,
                     boxShadow: [
                       BoxShadow(
                         color: colors.shadowCard,
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -184,12 +183,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: colors.border),
+                    border: isDark ? Border.all(color: colors.border.withValues(alpha: 0.5)) : null,
                     boxShadow: [
                       BoxShadow(
                         color: colors.shadowCard,
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -237,26 +236,30 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         ),
                         const SizedBox(height: 8),
                       ],
-                      ElevatedButton(
-                        onPressed: _changingPw ? null : _changePassword,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                      SizedBox(
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: _changingPw ? null : _changePassword,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
                           ),
+                          child: _changingPw
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Text(
+                                  'Update Password',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
                         ),
-                        child: _changingPw
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Text(
-                                'Update Password',
-                                style: TextStyle(fontWeight: FontWeight.w800),
-                              ),
                       ),
                     ],
                   ),
@@ -267,12 +270,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: colors.border),
+                    border: isDark ? Border.all(color: colors.border.withValues(alpha: 0.5)) : null,
                     boxShadow: [
                       BoxShadow(
                         color: colors.shadowCard,
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -357,19 +360,19 @@ class _PwField extends StatelessWidget {
           obscureText: true,
           decoration: InputDecoration(
             filled: true,
-            fillColor: Theme.of(context).colorScheme.surface,
+            fillColor: Theme.of(context).scaffoldBackgroundColor,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: colors.border),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: colors.border),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide:
-                  BorderSide(color: Theme.of(context).colorScheme.primary),
+                  BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
             ),
             isDense: true,
             contentPadding:
