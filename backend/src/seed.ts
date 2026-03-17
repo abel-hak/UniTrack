@@ -136,6 +136,39 @@ async function main() {
     }
   }
 
+  // ── Seed exams ──
+  const sampleExams: Array<{ courseCode: string; kind: string; daysFromNow: number; location?: string; notes?: string }> = [
+    { courseCode: "CoSc4022", kind: "midterm", daysFromNow: 12, location: "Room 301", notes: "Covers Flutter & Dart" },
+    { courseCode: "CoSc4012", kind: "midterm", daysFromNow: 15, location: "Lab 2", notes: "Cryptography + Network Security" },
+    { courseCode: "CoSc4412", kind: "midterm", daysFromNow: 18, location: "Room 205" },
+    { courseCode: "CoSc4212", kind: "midterm", daysFromNow: 20, location: "Room 301", notes: "Lexical & Syntax analysis" },
+    { courseCode: "CoSc4312", kind: "midterm", daysFromNow: 22, location: "Room 102" },
+    { courseCode: "Hist. 1012", kind: "midterm", daysFromNow: 10, location: "Hall A" },
+    { courseCode: "CoSc4022", kind: "final", daysFromNow: 45, location: "Room 301" },
+    { courseCode: "CoSc4012", kind: "final", daysFromNow: 48, location: "Lab 2" },
+  ];
+
+  const existingExams = await prisma.exam.count({ where: { batchId: batch.id } });
+  if (existingExams === 0) {
+    for (const ex of sampleExams) {
+      const course = courseList.find((c) => c.code === ex.courseCode);
+      if (!course) continue;
+      const startsAt = new Date(now);
+      startsAt.setDate(startsAt.getDate() + ex.daysFromNow);
+      startsAt.setHours(9, 0, 0, 0);
+      await prisma.exam.create({
+        data: {
+          batchId: batch.id,
+          courseId: course.id,
+          kind: ex.kind,
+          startsAt,
+          location: ex.location,
+          notes: ex.notes,
+        },
+      });
+    }
+  }
+
   const anyCourse = await prisma.course.findFirst({ where: { batchId: batch.id } });
   if (anyCourse) {
     const existing = await prisma.announcement.findFirst({ where: { batchId: batch.id } });
