@@ -224,95 +224,19 @@ class _HomePageState extends ConsumerState<HomePage>
     }
   }
 
-  void _showExamInfo(BuildContext context, TimelineExam exam) {
-    final colors = UniTrackColors.of(context);
-    final text = Theme.of(context).textTheme;
-    showModalBottomSheet(
+  Future<void> _showExamInfo(BuildContext context, TimelineExam exam) async {
+    final auth = ref.read(authStateNotifierProvider).user;
+    final batchId = auth?.batchId ?? '';
+    final changed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Center(child: SheetHandle()),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD97706).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.menu_book_rounded,
-                        size: 22, color: Color(0xFFD97706)),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          exam.course.title,
-                          style: text.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        Text(
-                          '${_cap(exam.kind)} exam',
-                          style: text.bodySmall?.copyWith(
-                            color: colors.mutedForeground,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _InfoRow(
-                icon: Icons.calendar_today_rounded,
-                label: 'Date',
-                value: DateFormat('EEEE, MMMM d, y').format(exam.startsAt),
-              ),
-              const SizedBox(height: 10),
-              _InfoRow(
-                icon: Icons.access_time_rounded,
-                label: 'Time',
-                value: DateFormat('h:mm a').format(exam.startsAt),
-              ),
-              if (exam.location != null && exam.location!.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                _InfoRow(
-                  icon: Icons.location_on_rounded,
-                  label: 'Location',
-                  value: exam.location!,
-                ),
-              ],
-              if (exam.notes != null && exam.notes!.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                _InfoRow(
-                  icon: Icons.notes_rounded,
-                  label: 'Notes',
-                  value: exam.notes!,
-                ),
-              ],
-              const SizedBox(height: 8),
-            ],
-          ),
-        ),
-      ),
+      builder: (_) => _ExamDetailSheet(exam: exam, batchId: batchId),
     );
+    if (changed == true) {
+      ref.invalidate(timelineProvider);
+      ref.invalidate(examsProvider);
+    }
   }
 
   void _showAnnouncementInfo(
@@ -377,6 +301,328 @@ class _HomePageState extends ConsumerState<HomePage>
                 style: text.bodyMedium?.copyWith(height: 1.5),
               ),
               const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Exam Detail / Edit Sheet ────────────────────────────────
+
+class _ExamDetailSheet extends ConsumerStatefulWidget {
+  final TimelineExam exam;
+  final String batchId;
+  const _ExamDetailSheet({required this.exam, required this.batchId});
+
+  @override
+  ConsumerState<_ExamDetailSheet> createState() => _ExamDetailSheetState();
+}
+
+class _ExamDetailSheetState extends ConsumerState<_ExamDetailSheet> {
+  bool _editing = false;
+  bool _saving = false;
+  late String _kind;
+  late DateTime _startsAt;
+  late final TextEditingController _location;
+  late final TextEditingController _notes;
+
+  @override
+  void initState() {
+    super.initState();
+    final ex = widget.exam;
+    _kind = ex.kind;
+    _startsAt = ex.startsAt;
+    _location = TextEditingController(text: ex.location ?? '');
+    _notes = TextEditingController(text: ex.notes ?? '');
+  }
+
+  @override
+  void dispose() {
+    _location.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _startsAt,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 730)),
+    );
+    if (d == null) return;
+    setState(() {
+      _startsAt = DateTime(d.year, d.month, d.day, _startsAt.hour, _startsAt.minute);
+    });
+  }
+
+  Future<void> _pickTime() async {
+    final t = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_startsAt),
+    );
+    if (t == null) return;
+    setState(() {
+      _startsAt = DateTime(_startsAt.year, _startsAt.month, _startsAt.day, t.hour, t.minute);
+    });
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      final ex = widget.exam;
+      final loc = _location.text.trim();
+      final n = _notes.text.trim();
+      await ref.read(announcementsExamsRepositoryProvider).patchExam(
+            batchId: widget.batchId,
+            id: ex.id,
+            kind: _kind != ex.kind ? _kind : null,
+            startsAt: _startsAt != ex.startsAt ? _startsAt : null,
+            location: loc.isNotEmpty ? loc : null,
+            clearLocation: loc.isEmpty && ex.location != null,
+            notes: n.isNotEmpty ? n : null,
+            clearNotes: n.isEmpty && ex.notes != null,
+          );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: $e'), behavior: SnackBarBehavior.floating),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _delete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete exam?'),
+        content: const Text('This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(announcementsExamsRepositoryProvider).deleteExam(
+            batchId: widget.batchId,
+            id: widget.exam.id,
+          );
+      if (mounted) Navigator.of(context).pop(true);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = UniTrackColors.of(context);
+    final text = Theme.of(context).textTheme;
+    final ex = widget.exam;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+          border: Border.all(color: colors.border),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SheetHandle(),
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD97706).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.menu_book_rounded,
+                        size: 22, color: Color(0xFFD97706)),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(ex.course.title,
+                            style: text.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w800)),
+                        Text(
+                          _editing ? '' : '${_cap(ex.kind)} exam',
+                          style: text.bodySmall
+                              ?.copyWith(color: colors.mutedForeground),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!_editing)
+                    IconButton(
+                      onPressed: () => setState(() => _editing = true),
+                      icon: const Icon(Icons.edit_rounded, size: 20),
+                      tooltip: 'Edit',
+                    ),
+                  IconButton(
+                    onPressed:
+                        _saving ? null : () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              if (!_editing) ...[
+                _InfoRow(
+                  icon: Icons.calendar_today_rounded,
+                  label: 'Date',
+                  value: DateFormat('EEEE, MMMM d, y').format(ex.startsAt),
+                ),
+                const SizedBox(height: 10),
+                _InfoRow(
+                  icon: Icons.access_time_rounded,
+                  label: 'Time',
+                  value: DateFormat('h:mm a').format(ex.startsAt),
+                ),
+                if (ex.location != null && ex.location!.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  _InfoRow(
+                    icon: Icons.location_on_rounded,
+                    label: 'Location',
+                    value: ex.location!,
+                  ),
+                ],
+                if (ex.notes != null && ex.notes!.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  _InfoRow(
+                    icon: Icons.notes_rounded,
+                    label: 'Notes',
+                    value: ex.notes!,
+                  ),
+                ],
+              ] else ...[
+                DropdownButtonFormField<String>(
+                  value: _kind,
+                  items: const [
+                    DropdownMenuItem(value: 'midterm', child: Text('Midterm')),
+                    DropdownMenuItem(value: 'final', child: Text('Final')),
+                    DropdownMenuItem(value: 'quiz', child: Text('Quiz')),
+                    DropdownMenuItem(
+                        value: 'practical', child: Text('Practical')),
+                  ],
+                  onChanged:
+                      _saving ? null : (v) => setState(() => _kind = v!),
+                  decoration: const InputDecoration(
+                    labelText: 'Kind',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _saving ? null : _pickDate,
+                        icon: const Icon(Icons.calendar_today_rounded,
+                            size: 16),
+                        label:
+                            Text(DateFormat('EEE, MMM d').format(_startsAt)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _saving ? null : _pickTime,
+                        icon:
+                            const Icon(Icons.access_time_rounded, size: 16),
+                        label: Text(DateFormat('h:mm a').format(_startsAt)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _location,
+                  decoration: const InputDecoration(
+                    labelText: 'Location (optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _notes,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Notes (optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _saving ? null : _delete,
+                        icon: const Icon(Icons.delete_outline,
+                            size: 18, color: Colors.red),
+                        label: const Text('Delete',
+                            style: TextStyle(color: Colors.red)),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.red.shade200),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: _saving ? null : _save,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: _saving
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2))
+                            : const Text('Save',
+                                style: TextStyle(fontWeight: FontWeight.w800)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -1055,34 +1301,79 @@ class _AssignmentDetailSheet extends ConsumerStatefulWidget {
 class _AssignmentDetailSheetState
     extends ConsumerState<_AssignmentDetailSheet> {
   late String _status;
+  late String _type;
+  late final TextEditingController _titleCtrl;
   late final TextEditingController _grade;
+  late final TextEditingController _weight;
+  late DateTime _dueAt;
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    _status = widget.assignment.status;
+    final a = widget.assignment;
+    _status = a.status;
+    _type = a.type;
+    _titleCtrl = TextEditingController(text: a.title);
     _grade = TextEditingController(
-      text: widget.assignment.gradePct?.toString() ?? '',
+      text: a.gradePct?.toString() ?? '',
     );
+    _weight = TextEditingController(
+      text: a.weight?.toString() ?? '',
+    );
+    _dueAt = a.dueAt;
   }
 
   @override
   void dispose() {
+    _titleCtrl.dispose();
     _grade.dispose();
+    _weight.dispose();
     super.dispose();
   }
 
+  Future<void> _pickDate() async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _dueAt,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 730)),
+    );
+    if (d == null) return;
+    setState(() {
+      _dueAt = DateTime(d.year, d.month, d.day, _dueAt.hour, _dueAt.minute);
+    });
+  }
+
+  Future<void> _pickTime() async {
+    final t = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_dueAt),
+    );
+    if (t == null) return;
+    setState(() {
+      _dueAt = DateTime(_dueAt.year, _dueAt.month, _dueAt.day, t.hour, t.minute);
+    });
+  }
+
   Future<void> _save() async {
+    final title = _titleCtrl.text.trim();
+    if (title.isEmpty) return;
     setState(() => _saving = true);
     try {
       final gradeVal = int.tryParse(_grade.text.trim());
+      final weightVal = int.tryParse(_weight.text.trim());
+      final a = widget.assignment;
       await ref.read(assignmentsRepositoryProvider).patch(
-            id: widget.assignment.id,
-            status: _status,
+            id: a.id,
+            title: title != a.title ? title : null,
+            type: _type != a.type ? _type : null,
+            status: _status != a.status ? _status : null,
             gradePct: gradeVal,
-            clearGrade: _grade.text.trim().isEmpty &&
-                widget.assignment.gradePct != null,
+            clearGrade: _grade.text.trim().isEmpty && a.gradePct != null,
+            weight: weightVal,
+            clearWeight: _weight.text.trim().isEmpty && a.weight != null,
+            dueAt: _dueAt != a.dueAt ? _dueAt : null,
           );
       if (mounted) Navigator.of(context).pop(true);
     } finally {
@@ -1095,8 +1386,7 @@ class _AssignmentDetailSheetState
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete assignment?'),
-        content:
-            const Text('This action cannot be undone.'),
+        content: const Text('This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -1139,125 +1429,185 @@ class _AssignmentDetailSheetState
           border: Border.all(color: colors.border),
         ),
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SheetHandle(),
-            Row(
-              children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  margin: const EdgeInsets.only(right: 10),
-                  decoration: BoxDecoration(
-                    color: _courseDotColor(context, a.course.colorKey),
-                    shape: BoxShape.circle,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SheetHandle(),
+              Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    margin: const EdgeInsets.only(right: 10),
+                    decoration: BoxDecoration(
+                      color: _courseDotColor(context, a.course.colorKey),
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: Text(
-                    a.title,
-                    style: text.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-                ),
-                IconButton(
-                  onPressed:
-                      _saving ? null : () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${a.course.title} \u00b7 ${_cap(a.type)}${a.weight != null ? ' \u00b7 ${a.weight}%' : ''}',
-              style: text.bodySmall?.copyWith(
-                color: colors.mutedForeground,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            Text(
-              'Due ${DateFormat('EEE, MMM d · h:mm a').format(a.dueAt)}',
-              style: text.bodySmall?.copyWith(
-                color: colors.mutedForeground,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _status,
-              items: const [
-                DropdownMenuItem(value: 'todo', child: Text('To Do')),
-                DropdownMenuItem(value: 'done', child: Text('Done')),
-                DropdownMenuItem(value: 'late', child: Text('Late')),
-              ],
-              onChanged:
-                  _saving ? null : (v) => setState(() => _status = v!),
-              decoration: const InputDecoration(
-                labelText: 'Status',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _grade,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Grade % (leave empty if ungraded)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _saving ? null : _delete,
-                    icon: const Icon(Icons.delete_outline,
-                        size: 18, color: Colors.red),
-                    label: const Text('Delete',
-                        style: TextStyle(color: Colors.red)),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.red.shade200),
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                  Expanded(
+                    child: Text(
+                      a.course.title,
+                      style: text.bodySmall?.copyWith(
+                        color: colors.mutedForeground,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
+                  IconButton(
+                    onPressed:
+                        _saving ? null : () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _titleCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Title',
+                  border: OutlineInputBorder(),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton(
-                    onPressed: _saving ? null : _save,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _type,
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'assignment', child: Text('Assignment')),
+                        DropdownMenuItem(value: 'quiz', child: Text('Quiz')),
+                        DropdownMenuItem(
+                            value: 'project', child: Text('Project')),
+                        DropdownMenuItem(value: 'exam', child: Text('Exam')),
+                      ],
+                      onChanged:
+                          _saving ? null : (v) => setState(() => _type = v!),
+                      decoration: const InputDecoration(
+                        labelText: 'Type',
+                        border: OutlineInputBorder(),
                       ),
                     ),
-                    child: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2),
-                          )
-                        : const Text('Save Changes',
-                            style:
-                                TextStyle(fontWeight: FontWeight.w800)),
                   ),
-                ),
-              ],
-            ),
-          ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _status,
+                      items: const [
+                        DropdownMenuItem(value: 'todo', child: Text('To Do')),
+                        DropdownMenuItem(value: 'done', child: Text('Done')),
+                        DropdownMenuItem(value: 'late', child: Text('Late')),
+                      ],
+                      onChanged:
+                          _saving ? null : (v) => setState(() => _status = v!),
+                      decoration: const InputDecoration(
+                        labelText: 'Status',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _weight,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Weight %',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _grade,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Grade %',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _saving ? null : _pickDate,
+                      icon: const Icon(Icons.calendar_today_rounded, size: 16),
+                      label: Text(DateFormat('EEE, MMM d').format(_dueAt)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _saving ? null : _pickTime,
+                      icon: const Icon(Icons.access_time_rounded, size: 16),
+                      label: Text(DateFormat('h:mm a').format(_dueAt)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _saving ? null : _delete,
+                      icon: const Icon(Icons.delete_outline,
+                          size: 18, color: Colors.red),
+                      label: const Text('Delete',
+                          style: TextStyle(color: Colors.red)),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.red.shade200),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: _saving ? null : _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: _saving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2),
+                            )
+                          : const Text('Save',
+                              style:
+                                  TextStyle(fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

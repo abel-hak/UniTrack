@@ -81,6 +81,26 @@ class AnnouncementsExamsRepository {
     );
   }
 
+  Future<void> patchExam({
+    required String batchId,
+    required String id,
+    String? kind,
+    DateTime? startsAt,
+    String? location,
+    bool clearLocation = false,
+    String? notes,
+    bool clearNotes = false,
+  }) async {
+    await _api.dio.patch('/batches/$batchId/exams/$id', data: {
+      if (kind != null) 'kind': kind,
+      if (startsAt != null) 'startsAt': startsAt.toUtc().toIso8601String(),
+      if (clearLocation) 'location': null,
+      if (!clearLocation && location != null) 'location': location,
+      if (clearNotes) 'notes': null,
+      if (!clearNotes && notes != null) 'notes': notes,
+    });
+  }
+
   Future<void> deleteExam({
     required String batchId,
     required String id,

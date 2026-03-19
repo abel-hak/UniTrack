@@ -51,6 +51,7 @@ export const assignmentCreateSchema = z.object({
 
 export const assignmentPatchSchema = z.object({
   title: z.string().min(1).optional(),
+  type: z.enum(["assignment", "quiz", "project", "exam"]).optional(),
   status: z.enum(["todo", "done", "late"]).optional(),
   gradePct: z.number().int().min(0).max(100).nullable().optional(),
   dueAt: z.string().datetime().optional(),
@@ -68,5 +69,12 @@ export const examCreateSchema = z.object({
   startsAt: z.string().datetime(),
   location: z.string().min(1).optional(),
   notes: z.string().min(1).optional(),
+});
+
+export const examPatchSchema = z.object({
+  kind: z.enum(["midterm", "final", "quiz", "practical"]).optional(),
+  startsAt: z.string().datetime().optional(),
+  location: z.string().min(1).nullable().optional(),
+  notes: z.string().min(1).nullable().optional(),
 });
 

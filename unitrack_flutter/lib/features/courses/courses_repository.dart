@@ -35,4 +35,23 @@ class CoursesRepository {
     );
     return Course.fromJson(res.data!['course'] as Map<String, dynamic>);
   }
+
+  Future<void> update({
+    required String id,
+    String? title,
+    int? credits,
+    String? colorKey,
+    String? instructor,
+  }) async {
+    await _api.dio.patch('/courses/$id', data: {
+      if (title != null) 'title': title,
+      if (credits != null) 'credits': credits,
+      if (colorKey != null) 'colorKey': colorKey,
+      if (instructor != null) 'instructor': instructor,
+    });
+  }
+
+  Future<void> delete({required String id}) async {
+    await _api.dio.delete('/courses/$id');
+  }
 }

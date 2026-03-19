@@ -6,13 +6,84 @@ import '../core/providers.dart';
 import '../main.dart';
 import '../features/courses/models.dart';
 import '../features/timeline/models.dart';
+import 'widgets/skeleton_loading.dart';
 
-class CourseDetailPage extends ConsumerWidget {
+Color _courseDotColor(BuildContext context, String colorKey) {
+  final colors = UniTrackColors.of(context);
+  return switch (colorKey) {
+    'yellow' => colors.courseYellow,
+    'teal' => colors.courseTeal,
+    'terracotta' => colors.courseTerracotta,
+    'slate' => colors.courseSlate,
+    _ => colors.courseTeal,
+  };
+}
+
+class CourseDetailPage extends ConsumerStatefulWidget {
   final Course course;
   const CourseDetailPage({super.key, required this.course});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CourseDetailPage> createState() => _CourseDetailPageState();
+}
+
+class _CourseDetailPageState extends ConsumerState<CourseDetailPage> {
+  Future<void> _editCourse() async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditCourseSheet(course: widget.course),
+    );
+    if (result == true && mounted) {
+      ref.invalidate(coursesProvider);
+      ref.invalidate(timelineProvider);
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _deleteCourse() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete course?'),
+        content: const Text(
+          'This will also delete all assignments and exams for this course. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child:
+                const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    try {
+      await ref.read(coursesRepositoryProvider).delete(id: widget.course.id);
+      ref.invalidate(coursesProvider);
+      ref.invalidate(timelineProvider);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final course = widget.course;
     final colors = UniTrackColors.of(context);
     final text = Theme.of(context).textTheme;
     final primary = Theme.of(context).colorScheme.primary;
@@ -30,6 +101,19 @@ class CourseDetailPage extends ConsumerWidget {
           course.title,
           style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800),
         ),
+        actions: [
+          IconButton(
+            onPressed: _editCourse,
+            icon: const Icon(Icons.edit_rounded, size: 20),
+            tooltip: 'Edit course',
+          ),
+          IconButton(
+            onPressed: _deleteCourse,
+            icon: const Icon(Icons.delete_outline_rounded, size: 20),
+            tooltip: 'Delete course',
+            color: Colors.red,
+          ),
+        ],
       ),
       body: SafeArea(
         child: Center(
@@ -237,16 +321,6 @@ class CourseDetailPage extends ConsumerWidget {
     );
   }
 
-  static Color _courseDotColor(BuildContext context, String colorKey) {
-    final colors = UniTrackColors.of(context);
-    return switch (colorKey) {
-      'yellow' => colors.courseYellow,
-      'teal' => colors.courseTeal,
-      'terracotta' => colors.courseTerracotta,
-      'slate' => colors.courseSlate,
-      _ => colors.courseTeal,
-    };
-  }
 
   static String _pctToLetter(double pct) {
     if (pct >= 93) return 'A';
@@ -527,4 +601,166 @@ class _ExamRow extends StatelessWidget {
 
   static String _cap(String s) =>
       s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
+}
+
+// ─── Edit Course Sheet ───────────────────────────────────────
+
+class _EditCourseSheet extends ConsumerStatefulWidget {
+  final Course course;
+  const _EditCourseSheet({required this.course});
+
+  @override
+  ConsumerState<_EditCourseSheet> createState() => _EditCourseSheetState();
+}
+
+class _EditCourseSheetState extends ConsumerState<_EditCourseSheet> {
+  late final TextEditingController _title;
+  late final TextEditingController _credits;
+  late String _colorKey;
+  bool _saving = false;
+
+  static const _colorKeys = ['yellow', 'teal', 'terracotta', 'slate'];
+  static const _colorLabels = ['Yellow', 'Teal', 'Terracotta', 'Slate'];
+
+  @override
+  void initState() {
+    super.initState();
+    _title = TextEditingController(text: widget.course.title);
+    _credits = TextEditingController(text: widget.course.credits.toString());
+    _colorKey = widget.course.colorKey;
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _credits.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final title = _title.text.trim();
+    if (title.isEmpty) return;
+    final credits = int.tryParse(_credits.text.trim());
+    if (credits == null || credits < 1) return;
+
+    setState(() => _saving = true);
+    try {
+      await ref.read(coursesRepositoryProvider).update(
+            id: widget.course.id,
+            title: title != widget.course.title ? title : null,
+            credits: credits != widget.course.credits ? credits : null,
+            colorKey: _colorKey != widget.course.colorKey ? _colorKey : null,
+          );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: $e'), behavior: SnackBarBehavior.floating),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = UniTrackColors.of(context);
+    final text = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+          border: Border.all(color: colors.border),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SheetHandle(),
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Edit course',
+                      style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                ),
+                IconButton(
+                  onPressed: _saving ? null : () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _title,
+              decoration: const InputDecoration(
+                labelText: 'Title',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _credits,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Credits',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: _colorKeys.contains(_colorKey) ? _colorKey : _colorKeys.first,
+              items: List.generate(
+                _colorKeys.length,
+                (i) => DropdownMenuItem(
+                  value: _colorKeys[i],
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: _courseDotColor(context, _colorKeys[i]),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      Text(_colorLabels[i]),
+                    ],
+                  ),
+                ),
+              ),
+              onChanged: _saving ? null : (v) => setState(() => _colorKey = v!),
+              decoration: const InputDecoration(
+                labelText: 'Color',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _saving ? null : _save,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: _saving
+                  ? const SizedBox(
+                      width: 18, height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('Save',
+                      style: TextStyle(fontWeight: FontWeight.w800)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -23,6 +23,7 @@ import {
   courseCreateSchema,
   courseUpdateSchema,
   examCreateSchema,
+  examPatchSchema,
   loginSchema,
   passwordChangeSchema,
   registerSchema,
@@ -190,6 +191,20 @@ app.patch("/courses/:id", async (req, res) => {
   res.json({ course: updated });
 });
 
+app.delete("/courses/:id", async (req, res) => {
+  const user = await requireAuth(req);
+  if (!user) return jsonError(res, 401, "Unauthorized");
+
+  const existing = await prisma.course.findUnique({ where: { id: req.params.id } });
+  if (!existing) return jsonError(res, 404, "Not found");
+  if (existing.batchId !== user.batchId) return jsonError(res, 403, "Forbidden");
+
+  await prisma.assignment.deleteMany({ where: { courseId: existing.id } });
+  await prisma.exam.deleteMany({ where: { courseId: existing.id } });
+  await prisma.course.delete({ where: { id: existing.id } });
+  res.json({ deleted: true });
+});
+
 // ─── Assignments (per-user) ──────────────────────────────────
 
 app.get("/assignments", async (req, res) => {
@@ -252,6 +267,7 @@ app.patch("/assignments/:id", async (req, res) => {
     where: { id: existing.id },
     data: {
       title: parsed.data.title,
+      type: parsed.data.type,
       status: parsed.data.status,
       gradePct: parsed.data.gradePct === null ? null : parsed.data.gradePct,
       weight: parsed.data.weight === null ? null : parsed.data.weight,
@@ -418,6 +434,31 @@ app.post("/batches/:batchId/exams", async (req, res) => {
     include: { course: { select: { id: true, code: true, title: true, colorKey: true, credits: true } } },
   });
   res.status(201).json({ exam: created });
+});
+
+app.patch("/batches/:batchId/exams/:id", async (req, res) => {
+  const user = await requireAuth(req);
+  if (!user) return jsonError(res, 401, "Unauthorized");
+  if (req.params.batchId !== user.batchId) return jsonError(res, 403, "Forbidden");
+
+  const parsed = examPatchSchema.safeParse(req.body);
+  if (!parsed.success) return jsonError(res, 400, "Invalid payload");
+
+  const existing = await prisma.exam.findUnique({ where: { id: req.params.id } });
+  if (!existing) return jsonError(res, 404, "Not found");
+  if (existing.batchId !== user.batchId) return jsonError(res, 403, "Forbidden");
+
+  const updated = await prisma.exam.update({
+    where: { id: existing.id },
+    data: {
+      kind: parsed.data.kind,
+      startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : undefined,
+      location: parsed.data.location === null ? null : parsed.data.location,
+      notes: parsed.data.notes === null ? null : parsed.data.notes,
+    },
+    include: { course: { select: { id: true, code: true, title: true, colorKey: true, credits: true } } },
+  });
+  res.json({ exam: updated });
 });
 
 app.delete("/batches/:batchId/exams/:id", async (req, res) => {
