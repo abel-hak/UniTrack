@@ -669,42 +669,37 @@ class _EmptyDay extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final primary = Theme.of(context).colorScheme.primary;
 
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: colors.mutedForeground.withValues(alpha: 0.06),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.wb_sunny_rounded,
-              size: 28,
-              color: colors.mutedForeground.withValues(alpha: 0.3),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            selectedDay != null
-                ? 'Free day!'
-                : 'Tap a day',
-            style: text.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: colors.mutedForeground,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            selectedDay != null
-                ? 'Nothing scheduled for ${DateFormat('MMM d').format(selectedDay!)}'
-                : 'Select a date to see events',
-            style: text.bodySmall?.copyWith(
-              color: colors.mutedForeground.withValues(alpha: 0.7),
-            ),
-          ),
+    return SingleChildScrollView(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.wb_sunny_rounded,
+                size: 28,
+                color: colors.mutedForeground.withValues(alpha: 0.3),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                selectedDay != null
+                    ? 'Free day!'
+                    : 'Tap a day',
+                style: text.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: colors.mutedForeground,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                selectedDay != null
+                    ? 'Nothing scheduled for ${DateFormat('MMM d').format(selectedDay!)}'
+                    : 'Select a date to see events',
+                style: text.bodySmall?.copyWith(
+                  color: colors.mutedForeground.withValues(alpha: 0.7),
+                ),
+              ),
           if (selectedDay != null && onAdd != null) ...[
             const SizedBox(height: 16),
             FilledButton.tonalIcon(
@@ -719,9 +714,11 @@ class _EmptyDay extends StatelessWidget {
                 ),
               ),
             ),
+            ],
           ],
-        ],
+        ),
       ),
+    ),
     );
   }
 }
