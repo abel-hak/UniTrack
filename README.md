@@ -151,17 +151,21 @@ After running `npm run seed`, these accounts are available:
 
 ### Core
 
-- **Courses** — Add and manage courses with color coding and credit tracking
-- **Assignments** — Track assignments with due dates, grades, and weights
-- **Announcements** — Batch-wide announcements from admins/publishers
-- **Exams** — Schedule and track exams with room info and duration
-- **Timeline** — Unified chronological view of all items across courses
+- **Courses** — Full CRUD: create, edit (title, credits, color), and delete courses with cascading cleanup
+- **Assignments** — Full CRUD: create, edit all fields (title, type, weight, due date, status, grade), and delete
+- **Announcements** — Batch-wide announcements from admins/publishers with create and delete
+- **Exams** — Full CRUD: create, edit (kind, date/time, location, notes), and delete
+- **Timeline** — Unified chronological view of all items across courses, filterable by course
+- **Calendar** — Interactive monthly calendar with swipeable navigation, color-coded event dots, collapsible grid, and a "Today" shortcut
+- **Course detail** — Dedicated page per course showing assignments (upcoming + graded), exams, and grade breakdown
 - **GPA calculation** — Automatic GPA from graded assignments
 
 ### UI / UX
 
-- Light and **dark theme** with toggle
+- Light and **dark theme** with toggle (Tailwind Slate dark palette)
 - **First-run onboarding** screen
+- **Tappable calendar events** — tap any event to view details or edit inline
+- **Tap-to-add from calendar** — select a date and add an assignment with the due date pre-filled
 - Skeleton loading shimmer effects
 - Staggered fade-in animations
 - Consistent empty states and error handling with retry
@@ -221,15 +225,17 @@ All endpoints except health, batches, register, and login require `Authorization
 | `GET` | `/courses` | List user's courses |
 | `POST` | `/courses` | Create a course |
 | `PATCH` | `/courses/:id` | Update a course |
+| `DELETE` | `/courses/:id` | Delete a course (cascades to assignments + exams) |
 | `GET` | `/assignments` | List user's assignments |
 | `POST` | `/assignments` | Create an assignment |
-| `PATCH` | `/assignments/:id` | Update / grade an assignment |
+| `PATCH` | `/assignments/:id` | Update any field (title, type, status, grade, weight, due date) |
 | `DELETE` | `/assignments/:id` | Delete an assignment |
 | `GET` | `/batches/:batchId/announcements` | List announcements |
 | `POST` | `/batches/:batchId/announcements` | Create an announcement |
 | `DELETE` | `/batches/:batchId/announcements/:id` | Delete an announcement |
 | `GET` | `/batches/:batchId/exams` | List exams |
 | `POST` | `/batches/:batchId/exams` | Create an exam |
+| `PATCH` | `/batches/:batchId/exams/:id` | Update an exam (kind, date, location, notes) |
 | `DELETE` | `/batches/:batchId/exams/:id` | Delete an exam |
 | `GET` | `/timeline` | Unified timeline |
 
