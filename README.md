@@ -1,8 +1,8 @@
 # UniTrack
 
-A student-focused academic tracker built with a **TypeScript / Express** backend and a **Flutter** mobile app.
+A full-stack academic tracker for university students — built with **TypeScript / Express** on the backend and **Flutter** on the frontend.
 
-UniTrack helps students manage **courses, assignments, announcements, exams**, and view everything on a **unified timeline**. It also includes **AI-powered features** like announcement summaries and daily study plans.
+Students can manage courses, track assignments and grades, view announcements and exams, and stay organized through a unified timeline and interactive calendar. AI features (powered by Groq) provide announcement summaries and personalized daily study plans.
 
 ---
 
@@ -10,108 +10,107 @@ UniTrack helps students manage **courses, assignments, announcements, exams**, a
 
 ```
 UniTrack/
-├── backend/                 # Express API + Prisma ORM + SQLite
+├── backend/                     # Express API + Prisma ORM + SQLite
 │   ├── src/
-│   │   ├── server.ts        # All API routes
+│   │   ├── server.ts            # All API routes
+│   │   ├── seed.ts              # Sample data seeder
 │   │   └── lib/
-│   │       └── ai.ts        # Groq AI integration
+│   │       ├── ai.ts            # Groq AI integration
+│   │       ├── auth.ts          # JWT auth helpers
+│   │       ├── http.ts          # Error response helpers
+│   │       └── validation.ts    # Zod request schemas
 │   ├── prisma/
-│   │   ├── schema.prisma    # Database schema
-│   │   ├── migrations/      # Migration history
-│   │   └── seed.ts          # Sample data seeder
+│   │   └── schema.prisma        # Database schema
 │   ├── .env.example
 │   └── package.json
 │
-├── unitrack_flutter/        # Flutter mobile app
+├── unitrack_flutter/            # Flutter app (Android, iOS, Web, Desktop)
 │   └── lib/
-│       ├── main.dart        # App entry, themes
-│       ├── core/            # Providers, config, API client
-│       ├── features/        # Repositories & data models
-│       └── ui/              # Screens & widgets
+│       ├── main.dart            # App entry, light + dark themes
+│       ├── core/
+│       │   ├── providers.dart   # Riverpod providers
+│       │   ├── config.dart      # API URL config per platform
+│       │   └── api/             # Dio HTTP client
+│       ├── features/
+│       │   ├── courses/         # Course models + repository
+│       │   ├── assignments/     # Assignment repository
+│       │   ├── announcements_exams/  # Announcements + exams repo
+│       │   └── timeline/        # Timeline models + repository
+│       └── ui/
+│           ├── home_page.dart           # Main screen (timeline, calendar, grades)
+│           ├── calendar_tab.dart        # Interactive monthly calendar
+│           ├── course_detail_page.dart  # Per-course detail view
+│           ├── announcements_exams_page.dart
+│           ├── login_page.dart
+│           ├── register_page.dart
+│           ├── profile_page.dart
+│           ├── onboarding_page.dart
+│           └── widgets/         # Shared components
 │
 └── docs/
-    └── UI_ANALYSIS.md       # UI improvement tracker
+    └── UI_ANALYSIS.md           # UI audit and improvement tracker
 ```
+
+---
 
 ## Tech stack
 
 | Layer | Technologies |
 |-------|-------------|
-| **Backend** | Node.js, TypeScript, Express, Prisma, SQLite (default), JWT auth |
-| **Mobile** | Flutter 3.8+, Riverpod, Dio, Flutter Secure Storage, Google Fonts |
-| **AI** | Groq API (Llama 3) for summaries and daily plans |
+| **Backend** | Node.js 20+, TypeScript, Express, Prisma, SQLite, Zod, JWT |
+| **Frontend** | Flutter 3.8+, Dart, Riverpod, Dio, Flutter Secure Storage, Google Fonts |
+| **AI** | Groq API (Llama 3) — announcement summaries + daily study plans |
 
 ---
 
-## 1. Prerequisites
+## Getting started
+
+### Prerequisites
 
 - **Node.js 20+** and **npm**
 - **Flutter SDK 3.8+**
-- **Android Studio** (Android emulator) or **Xcode** (iOS simulator, macOS only)
+- An emulator (Android Studio / Xcode) or a browser (Chrome / Edge)
 
----
-
-## 2. Backend setup
-
-All commands below run from inside the `backend/` folder.
-
-### 2.1 Create `.env`
+### 1. Backend
 
 ```bash
 cd backend
 ```
 
-**Windows PowerShell:**
+Create your `.env` file:
 
-```powershell
+```bash
+# macOS / Linux
+cp .env.example .env
+
+# Windows PowerShell
 Copy-Item .env.example .env
 ```
 
-**macOS / Linux:**
-
-```bash
-cp .env.example .env
-```
-
-Open `.env` and set:
+Edit `.env` as needed:
 
 | Variable | Required | Default | Notes |
 |----------|----------|---------|-------|
-| `JWT_SECRET` | Yes | `dev-secret-change-me` | Change to a long random string (16+ chars) |
-| `DATABASE_URL` | No | `file:./dev.db` | SQLite file path |
+| `JWT_SECRET` | Yes | `dev-secret-change-me` | Use a long random string in production |
+| `DATABASE_URL` | No | `file:./dev.db` | SQLite by default |
 | `PORT` | No | `3001` | API port |
-| `JWT_EXPIRES_IN` | No | `7d` | Token expiry |
-| `GROQ_API_KEY` | No | — | Enables AI features (summaries + daily plan) |
+| `GROQ_API_KEY` | No | — | Enables AI features |
 
-### 2.2 Install and prepare the database
+Install, migrate, seed, and run:
 
 ```bash
 npm install
 npm run prisma:generate
 npm run prisma:migrate
 npm run seed
-```
-
-This installs dependencies, generates the Prisma client, applies migrations, and seeds sample data (batches, users, courses, announcements).
-
-### 2.3 Start the API
-
-```bash
 npm run dev
 ```
 
-The API listens on **`http://localhost:3001`**. Verify with:
+Verify: `curl http://localhost:3001/health` → `{ "ok": true }`
 
-```bash
-curl http://localhost:3001/health
-# → { "ok": true }
-```
+### 2. Flutter app
 
----
-
-## 3. Flutter app setup
-
-Open a **new terminal** (keep the backend running):
+In a **separate terminal** (keep the backend running):
 
 ```bash
 cd unitrack_flutter
@@ -119,20 +118,18 @@ flutter pub get
 flutter run
 ```
 
-The app auto-detects the API URL by platform:
+The app auto-detects the API URL:
 
 | Platform | Base URL |
 |----------|----------|
 | Android emulator | `http://10.0.2.2:3001` |
-| iOS simulator / desktop / web | `http://localhost:3001` |
-
-This is configured in `lib/core/config.dart`.
+| iOS simulator / Desktop / Web | `http://localhost:3001` |
 
 ---
 
-## 4. Seeded accounts
+## Seeded accounts
 
-After running `npm run seed`, these accounts are available:
+After `npm run seed`:
 
 | Role | Email | Password |
 |------|-------|----------|
@@ -140,51 +137,50 @@ After running `npm run seed`, these accounts are available:
 | Publisher | `publisher@unitrack.dev` | `publisher123` |
 | Student | `student@unitrack.dev` | `student123` |
 
-**Role permissions:**
-
-- **Admin / Publisher**: Can create announcements and exams
-- **Student**: Can create assignments, view announcements and exams
+- **Admin / Publisher** — can create announcements and exams
+- **Student** — can create courses and assignments, view everything
 
 ---
 
-## 5. Features
+## Features
 
-### Core
+### Core functionality
 
-- **Courses** — Full CRUD: create, edit (title, credits, color), and delete courses with cascading cleanup
-- **Assignments** — Full CRUD: create, edit all fields (title, type, weight, due date, status, grade), and delete
-- **Announcements** — Batch-wide announcements from admins/publishers with create and delete
-- **Exams** — Full CRUD: create, edit (kind, date/time, location, notes), and delete
-- **Timeline** — Unified chronological view of all items across courses, filterable by course
-- **Calendar** — Interactive monthly calendar with swipeable navigation, color-coded event dots, collapsible grid, and a "Today" shortcut
-- **Course detail** — Dedicated page per course showing assignments (upcoming + graded), exams, and grade breakdown
-- **GPA calculation** — Automatic GPA from graded assignments
+| Feature | Details |
+|---------|---------|
+| **Courses** | Full CRUD — create, edit (title, credits, color), delete with cascading cleanup |
+| **Assignments** | Full CRUD — edit title, type, weight, due date, status, and grade |
+| **Exams** | Full CRUD — edit kind, date/time, location, and notes |
+| **Announcements** | Batch-wide posts from admins/publishers, create and delete |
+| **Timeline** | Unified chronological feed of all items, filterable by course |
+| **Calendar** | Swipeable monthly view with color-coded event dots, collapsible grid, and "Today" shortcut |
+| **Course detail** | Per-course page with upcoming/graded assignments, exams, and stats |
+| **GPA** | Automatic GPA calculated from graded assignments |
 
 ### UI / UX
 
-- Light and **dark theme** with toggle (Tailwind Slate dark palette)
-- **First-run onboarding** screen
+- **Light + dark theme** — toggle from the home screen header; dark theme uses a Tailwind Slate palette
+- **Onboarding** — first-run welcome screen
 - **Tappable calendar events** — tap any event to view details or edit inline
-- **Tap-to-add from calendar** — select a date and add an assignment with the due date pre-filled
-- Skeleton loading shimmer effects
-- Staggered fade-in animations
-- Consistent empty states and error handling with retry
-- Bottom sheet forms with drag handles
+- **Tap-to-add from calendar** — select a date, tap `+` to create an assignment with the due date pre-filled
+- **Skeleton loading** — shimmer placeholders while data loads
+- **Micro-animations** — staggered fade-in on lists, ripple feedback on cards
+- **Consistent patterns** — shared empty states, error + retry, bottom sheet drag handles
 
 ### AI-powered (requires `GROQ_API_KEY`)
 
-- **Announcement TL;DR** — Summarizes long announcements into bullet points + key dates
-- **Daily study plan** — "What should I work on today?" generates a prioritized plan from upcoming deadlines
+- **Announcement TL;DR** — summarizes long announcements into bullet points + key dates
+- **Daily study plan** — "What should I work on today?" — prioritized plan from upcoming deadlines
 
 ---
 
-## 6. Useful commands
+## Useful commands
 
 ### Backend (`backend/`)
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Run API in watch mode |
+| `npm run dev` | Start API in watch mode |
 | `npm run build` | Compile TypeScript to `dist/` |
 | `npm run start` | Run compiled API |
 | `npm run prisma:migrate` | Apply database migrations |
@@ -202,53 +198,68 @@ After running `npm run seed`, these accounts are available:
 
 ---
 
-## 7. API endpoints
+## API reference
 
-Base URL: **`http://localhost:3001`**
+Base URL: `http://localhost:3001`
 
-All endpoints except health, batches, register, and login require `Authorization: Bearer <token>`.
+All endpoints except `/health`, `/batches`, `/auth/register`, and `/auth/login` require `Authorization: Bearer <token>`.
 
 ### Auth
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/auth/register` | Create a new account |
-| `POST` | `/auth/login` | Sign in, returns JWT |
+| `POST` | `/auth/register` | Create account |
+| `POST` | `/auth/login` | Sign in → JWT |
 | `GET` | `/auth/me` | Current user info |
 | `PATCH` | `/auth/password` | Change password |
 
-### Data
+### Courses
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/batches` | List all batches |
-| `GET` | `/courses` | List user's courses |
-| `POST` | `/courses` | Create a course |
-| `PATCH` | `/courses/:id` | Update a course |
-| `DELETE` | `/courses/:id` | Delete a course (cascades to assignments + exams) |
-| `GET` | `/assignments` | List user's assignments |
-| `POST` | `/assignments` | Create an assignment |
-| `PATCH` | `/assignments/:id` | Update any field (title, type, status, grade, weight, due date) |
-| `DELETE` | `/assignments/:id` | Delete an assignment |
+| `GET` | `/courses` | List courses |
+| `POST` | `/courses` | Create course |
+| `PATCH` | `/courses/:id` | Update course |
+| `DELETE` | `/courses/:id` | Delete course (cascades to assignments + exams) |
+
+### Assignments
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/assignments` | List assignments |
+| `POST` | `/assignments` | Create assignment |
+| `PATCH` | `/assignments/:id` | Update (title, type, status, grade, weight, due date) |
+| `DELETE` | `/assignments/:id` | Delete assignment |
+
+### Announcements
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
 | `GET` | `/batches/:batchId/announcements` | List announcements |
-| `POST` | `/batches/:batchId/announcements` | Create an announcement |
-| `DELETE` | `/batches/:batchId/announcements/:id` | Delete an announcement |
-| `GET` | `/batches/:batchId/exams` | List exams |
-| `POST` | `/batches/:batchId/exams` | Create an exam |
-| `PATCH` | `/batches/:batchId/exams/:id` | Update an exam (kind, date, location, notes) |
-| `DELETE` | `/batches/:batchId/exams/:id` | Delete an exam |
-| `GET` | `/timeline` | Unified timeline |
+| `POST` | `/batches/:batchId/announcements` | Create announcement |
+| `DELETE` | `/batches/:batchId/announcements/:id` | Delete announcement |
 
-### AI
+### Exams
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `GET` | `/batches/:batchId/exams` | List exams |
+| `POST` | `/batches/:batchId/exams` | Create exam |
+| `PATCH` | `/batches/:batchId/exams/:id` | Update (kind, date, location, notes) |
+| `DELETE` | `/batches/:batchId/exams/:id` | Delete exam |
+
+### Other
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/timeline` | Unified timeline (assignments + announcements + exams) |
+| `GET` | `/batches` | List batches |
 | `POST` | `/batches/:batchId/announcements/:id/summary` | AI summary of announcement |
-| `POST` | `/ai/today-plan` | AI-generated daily study plan |
+| `POST` | `/ai/today-plan` | AI daily study plan |
 
 ---
 
-## 8. Database notes
+## Database
 
-- Default database is **SQLite** (`file:./dev.db`).
-- A **Postgres Docker** setup is available in `backend/docker-compose.yml` — update `DATABASE_URL` and re-run migrations to switch.
+- Default: **SQLite** (`file:./dev.db`) — zero config, works out of the box
+- Postgres: update `DATABASE_URL` in `.env` and re-run `npm run prisma:migrate`
