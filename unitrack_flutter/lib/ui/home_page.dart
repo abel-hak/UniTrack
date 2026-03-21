@@ -107,6 +107,8 @@ class _HomePageState extends ConsumerState<HomePage>
                               ),
                               const _ThemeToggle(),
                               const SizedBox(width: 6),
+                              _SearchButton(ref: ref),
+                              const SizedBox(width: 6),
                               const _HeaderMenu(),
                             ],
                           ),
@@ -736,6 +738,305 @@ class _StatChip extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SearchButton extends StatelessWidget {
+  final WidgetRef ref;
+  const _SearchButton({required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 40,
+      height: 40,
+      child: IconButton(
+        onPressed: () {
+          final bundle = ref.read(timelineProvider).valueOrNull;
+          if (bundle == null) return;
+          showSearch(
+            context: context,
+            delegate: _UniTrackSearchDelegate(bundle, ref),
+          );
+        },
+        icon: const Icon(Icons.search_rounded, size: 20),
+        style: IconButton.styleFrom(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UniTrackSearchDelegate extends SearchDelegate<void> {
+  final TimelineBundle bundle;
+  final WidgetRef ref;
+
+  _UniTrackSearchDelegate(this.bundle, this.ref)
+      : super(searchFieldLabel: 'Search assignments, exams, announcements...');
+
+  @override
+  ThemeData appBarTheme(BuildContext context) {
+    final theme = Theme.of(context);
+    return theme.copyWith(
+      appBarTheme: theme.appBarTheme.copyWith(
+        elevation: 0,
+        backgroundColor: theme.colorScheme.surface,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        hintStyle: TextStyle(
+          color: UniTrackColors.of(context).mutedForeground,
+          fontWeight: FontWeight.w500,
+        ),
+        border: InputBorder.none,
+      ),
+    );
+  }
+
+  @override
+  List<Widget>? buildActions(BuildContext context) {
+    return [
+      if (query.isNotEmpty)
+        IconButton(
+          icon: const Icon(Icons.clear_rounded),
+          onPressed: () => query = '',
+        ),
+    ];
+  }
+
+  @override
+  Widget? buildLeading(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back_rounded),
+      onPressed: () => close(context, null),
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) => _buildList(context);
+
+  @override
+  Widget buildSuggestions(BuildContext context) => _buildList(context);
+
+  Widget _buildList(BuildContext context) {
+    final colors = UniTrackColors.of(context);
+    final text = Theme.of(context).textTheme;
+    final primary = Theme.of(context).colorScheme.primary;
+    final q = query.toLowerCase().trim();
+
+    if (q.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_rounded, size: 48,
+                color: colors.mutedForeground.withValues(alpha: 0.3)),
+            const SizedBox(height: 12),
+            Text('Type to search',
+                style: text.bodyMedium?.copyWith(color: colors.mutedForeground)),
+          ],
+        ),
+      );
+    }
+
+    final results = <_SearchResult>[];
+
+    for (final a in bundle.assignments) {
+      if (a.title.toLowerCase().contains(q) ||
+          a.course.title.toLowerCase().contains(q) ||
+          a.type.toLowerCase().contains(q)) {
+        results.add(_SearchResult(
+          icon: Icons.assignment_rounded,
+          color: primary,
+          label: 'Assignment',
+          title: a.title,
+          subtitle: '${a.course.title} · Due ${DateFormat('MMM d').format(a.dueAt)}',
+          onTap: () {
+            close(context, null);
+            showModalBottomSheet<bool>(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => _AssignmentDetailSheet(assignment: a),
+            ).then((changed) {
+              if (changed == true) {
+                ref.invalidate(timelineProvider);
+              }
+            });
+          },
+        ));
+      }
+    }
+
+    for (final ex in bundle.exams) {
+      if (ex.course.title.toLowerCase().contains(q) ||
+          ex.kind.toLowerCase().contains(q) ||
+          (ex.location ?? '').toLowerCase().contains(q)) {
+        results.add(_SearchResult(
+          icon: Icons.menu_book_rounded,
+          color: const Color(0xFFD97706),
+          label: 'Exam',
+          title: '${ex.course.title} · ${_cap(ex.kind)}',
+          subtitle:
+              '${DateFormat('MMM d').format(ex.startsAt)}${ex.location != null ? ' · ${ex.location}' : ''}',
+          onTap: () {
+            close(context, null);
+          },
+        ));
+      }
+    }
+
+    for (final an in bundle.announcements) {
+      if (an.title.toLowerCase().contains(q) ||
+          an.body.toLowerCase().contains(q) ||
+          an.authorName.toLowerCase().contains(q)) {
+        results.add(_SearchResult(
+          icon: Icons.campaign_rounded,
+          color: colors.mutedForeground,
+          label: 'Announcement',
+          title: an.title,
+          subtitle: 'By ${an.authorName} · ${DateFormat('MMM d').format(an.createdAt)}',
+          onTap: () {
+            close(context, null);
+          },
+        ));
+      }
+    }
+
+    if (results.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_off_rounded, size: 48,
+                color: colors.mutedForeground.withValues(alpha: 0.3)),
+            const SizedBox(height: 12),
+            Text('No results for "$query"',
+                style: text.bodyMedium?.copyWith(color: colors.mutedForeground)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      itemCount: results.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, i) {
+        final r = results[i];
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Material(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: r.onTap,
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                border: isDark
+                    ? Border.all(
+                        color: colors.border.withValues(alpha: 0.4))
+                    : null,
+                boxShadow: [
+                  BoxShadow(
+                    color: colors.shadowCard,
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: r.color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(r.icon, size: 20, color: r.color),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: r.color.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                r.label,
+                                style: text.labelSmall?.copyWith(
+                                  color: r.color,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          r.title,
+                          style: text.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          r.subtitle,
+                          style: text.bodySmall?.copyWith(
+                            color: colors.mutedForeground,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded,
+                      size: 18, color: colors.mutedForeground),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  static String _cap(String s) =>
+      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
+}
+
+class _SearchResult {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _SearchResult({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
 }
 
 class _HeaderMenu extends ConsumerWidget {
@@ -1626,14 +1927,31 @@ class _GradesTab extends ConsumerWidget {
 
     final rows = ref.watch(courseGradesProvider);
     if (rows.isEmpty) {
-      return const EmptyState(
-        icon: Icons.school_outlined,
-        title: 'No graded items yet',
-        subtitle: 'Grades will appear once you add scores to assignments',
+      return RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(timelineProvider);
+          ref.invalidate(coursesProvider);
+        },
+        child: ListView(
+          children: const [
+            SizedBox(height: 80),
+            EmptyState(
+              icon: Icons.school_outlined,
+              title: 'No graded items yet',
+              subtitle: 'Grades will appear once you add scores to assignments',
+            ),
+          ],
+        ),
       );
     }
 
-    return ListView.separated(
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(timelineProvider);
+        ref.invalidate(coursesProvider);
+        ref.invalidate(gpaProvider);
+      },
+      child: ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 92),
       itemCount: rows.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
@@ -1723,6 +2041,7 @@ class _GradesTab extends ConsumerWidget {
           ),
         );
       },
+    ),
     );
   }
 }
@@ -1846,10 +2165,21 @@ class _TimelineTab extends ConsumerWidget {
             data: (bundle) {
               final groups = _buildTimelineGroups(context, bundle);
               if (groups.isEmpty) {
-                return const EmptyState(
-                  icon: Icons.event_note_outlined,
-                  title: 'No upcoming items',
-                  subtitle: 'Tap + to add your first assignment',
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(timelineProvider);
+                    ref.invalidate(coursesProvider);
+                  },
+                  child: ListView(
+                    children: const [
+                      SizedBox(height: 80),
+                      EmptyState(
+                        icon: Icons.event_note_outlined,
+                        title: 'No upcoming items',
+                        subtitle: 'Tap + to add your first assignment',
+                      ),
+                    ],
+                  ),
                 );
               }
               return RefreshIndicator(

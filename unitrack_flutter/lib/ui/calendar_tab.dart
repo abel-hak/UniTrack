@@ -304,26 +304,38 @@ class _CalendarTabState extends ConsumerState<CalendarTab>
 
             // ── Events list ──
             Expanded(
-              child: selectedEvents.isEmpty
-                  ? _EmptyDay(
-                      selectedDay: _selectedDay,
-                      onAdd: _handleAddFromDate,
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
-                      itemCount: selectedEvents.length,
-                      itemBuilder: (context, i) {
-                        final ev = selectedEvents[i];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _EventCard(
-                            event: ev,
-                            index: i,
-                            onTap: () => _handleEventTap(ev),
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(timelineProvider);
+                },
+                child: selectedEvents.isEmpty
+                    ? ListView(
+                        children: [
+                          SizedBox(
+                            height: 120,
+                            child: _EmptyDay(
+                              selectedDay: _selectedDay,
+                              onAdd: _handleAddFromDate,
+                            ),
                           ),
-                        );
-                      },
-                    ),
+                        ],
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
+                        itemCount: selectedEvents.length,
+                        itemBuilder: (context, i) {
+                          final ev = selectedEvents[i];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _EventCard(
+                              event: ev,
+                              index: i,
+                              onTap: () => _handleEventTap(ev),
+                            ),
+                          );
+                        },
+                      ),
+              ),
             ),
           ],
         );
