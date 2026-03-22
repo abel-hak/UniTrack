@@ -7,6 +7,7 @@ import '../main.dart';
 import '../features/courses/models.dart';
 import '../features/timeline/models.dart';
 import '../core/notifications/notification_service.dart';
+import 'analytics_page.dart';
 import 'announcements_exams_page.dart';
 import 'calendar_tab.dart';
 import 'course_detail_page.dart';
