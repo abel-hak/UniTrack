@@ -116,7 +116,14 @@ class _HomePageState extends ConsumerState<HomePage>
                           const SizedBox(height: 16),
                           Row(
                             children: [
-                              _GpaPill(value: _formatGpa(ref.watch(gpaProvider))),
+                              GestureDetector(
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const AnalyticsPage(),
+                                  ),
+                                ),
+                                child: _GpaPill(value: _formatGpa(ref.watch(gpaProvider))),
+                              ),
                               const SizedBox(width: 12),
                               _StatChip(
                                 icon: Icons.school_rounded,
@@ -1071,6 +1078,11 @@ class _HeaderMenu extends ConsumerWidget {
               );
             case 'courses':
               _openAddCourseSheet(context, ref);
+            case 'analytics':
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const AnalyticsPage()),
+              );
             case 'profile':
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const ProfilePage()),
