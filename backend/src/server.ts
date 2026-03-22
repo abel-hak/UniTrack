@@ -14,6 +14,7 @@ import assignmentRoutes from "./routes/assignments";
 import announcementRoutes from "./routes/announcements";
 import examRoutes from "./routes/exams";
 import timelineRoutes from "./routes/timeline";
+import analyticsRoutes from "./routes/analytics";
 
 const port = z.coerce.number().default(3001).parse(process.env.PORT);
 
@@ -40,6 +41,7 @@ app.use("/assignments", assignmentRoutes);
 app.use("/batches/:batchId/announcements", announcementRoutes);
 app.use("/batches/:batchId/exams", examRoutes);
 app.use(timelineRoutes);
+app.use("/analytics", analyticsRoutes);
 
 app.listen(port, () => {
   console.log(`UniTrack API listening on http://localhost:${port}`);
