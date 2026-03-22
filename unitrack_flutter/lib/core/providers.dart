@@ -181,6 +181,43 @@ double _pctToGpa(double pct) {
   return 0.0;
 }
 
+// ─── Analytics ────────────────────────────────────────────────
+
+final analyticsRepositoryProvider = Provider<AnalyticsRepository>((ref) {
+  return AnalyticsRepository(ref.watch(apiClientProvider));
+});
+
+final analyticsOverviewProvider = FutureProvider<AnalyticsOverview>((ref) async {
+  final auth = ref.watch(authStateNotifierProvider);
+  if (!auth.isAuthed) {
+    return const AnalyticsOverview(
+      gpa: null,
+      totalCredits: 0,
+      gradedCredits: 0,
+      courses: [],
+    );
+  }
+  return ref.watch(analyticsRepositoryProvider).overview();
+});
+
+final analyticsTrendProvider = FutureProvider<List<TrendPoint>>((ref) async {
+  final auth = ref.watch(authStateNotifierProvider);
+  if (!auth.isAuthed) return const [];
+  return ref.watch(analyticsRepositoryProvider).trend();
+});
+
+final analyticsProjectionProvider = FutureProvider<GpaProjection>((ref) async {
+  final auth = ref.watch(authStateNotifierProvider);
+  if (!auth.isAuthed) {
+    return const GpaProjection(
+      current: null,
+      optimistic: null,
+      pessimistic: null,
+    );
+  }
+  return ref.watch(analyticsRepositoryProvider).projection();
+});
+
 // ─── Announcements & Exams ───────────────────────────────────
 
 final announcementsProvider = FutureProvider<List<Announcement>>((ref) async {
