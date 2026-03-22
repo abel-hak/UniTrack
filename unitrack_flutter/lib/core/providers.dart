@@ -18,6 +18,8 @@ import '../features/timeline/models.dart';
 import '../features/assignments/assignments_repository.dart';
 import '../features/announcements_exams/repository.dart';
 import '../features/announcements_exams/models.dart';
+import '../features/analytics/analytics_repository.dart';
+import '../features/analytics/models.dart';
 
 // ─── Repositories ────────────────────────────────────────────
 
