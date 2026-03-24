@@ -1,6 +1,6 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -540,14 +540,22 @@ class _CourseGradeBar extends StatelessWidget {
 
 // ─── GPA Trend Chart ────────────────────────────────────────────
 
-class _GpaTrendChart extends ConsumerWidget {
+class _GpaTrendChart extends ConsumerStatefulWidget {
   const _GpaTrendChart();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_GpaTrendChart> createState() => _GpaTrendChartState();
+}
+
+class _GpaTrendChartState extends ConsumerState<_GpaTrendChart> {
+  int? _touchedIndex;
+
+  @override
+  Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final colors = UniTrackColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final trendAsync = ref.watch(analyticsTrendProvider);
 
     return Column(
@@ -620,17 +628,7 @@ class _GpaTrendChart extends ConsumerWidget {
             final yMin = (minGpa - 0.3).clamp(0.0, 4.0);
             final yMax = (maxGpa + 0.3).clamp(0.0, 4.0);
 
-            final spots = List.generate(
-              points.length,
-              (i) => FlSpot(i.toDouble(), points[i].gpa),
-            );
-
-            final isDark =
-                Theme.of(context).brightness == Brightness.dark;
-
             return Container(
-              height: 220,
-              padding: const EdgeInsets.fromLTRB(0, 16, 16, 8),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(16),
@@ -646,108 +644,94 @@ class _GpaTrendChart extends ConsumerWidget {
                   ),
                 ],
               ),
-              child: LineChart(
-                LineChartData(
-                  minY: yMin,
-                  maxY: yMax,
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: 0.5,
-                    getDrawingHorizontalLine: (value) => FlLine(
-                      color: colors.border.withValues(alpha: 0.3),
-                      strokeWidth: 1,
-                    ),
-                  ),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        interval: 0.5,
-                        reservedSize: 36,
-                        getTitlesWidget: (value, meta) => Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: Text(
-                            value.toStringAsFixed(1),
-                            style: text.labelSmall?.copyWith(
-                              color: colors.mutedForeground,
-                              fontSize: 10,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_touchedIndex != null &&
+                      _touchedIndex! >= 0 &&
+                      _touchedIndex! < points.length)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: Row(
+                        children: [
+                          Text(
+                            points[_touchedIndex!]
+                                .gpa
+                                .toStringAsFixed(2),
+                            style: text.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: primary,
                             ),
                           ),
-                        ),
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        interval: math.max(
-                            1, (points.length / 5).ceilToDouble()),
-                        getTitlesWidget: (value, meta) {
-                          final idx = value.toInt();
-                          if (idx < 0 || idx >= points.length) {
-                            return const SizedBox.shrink();
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 6),
+                          const SizedBox(width: 6),
+                          Text(
+                            'GPA',
+                            style: text.labelSmall?.copyWith(
+                              color: colors.mutedForeground,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
                             child: Text(
-                              DateFormat('M/d')
-                                  .format(points[idx].date),
+                              points[_touchedIndex!].label,
                               style: text.labelSmall?.copyWith(
                                 color: colors.mutedForeground,
-                                fontSize: 9,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 8, 16, 4),
+                    child: SizedBox(
+                      height: 180,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return GestureDetector(
+                            onPanUpdate: (d) => _hitTest(
+                                d.localPosition, constraints.biggest,
+                                points.length),
+                            onPanEnd: (_) =>
+                                setState(() => _touchedIndex = null),
+                            onTapUp: (d) => _hitTest(
+                                d.localPosition, constraints.biggest,
+                                points.length),
+                            child: CustomPaint(
+                              size: constraints.biggest,
+                              painter: _TrendLinePainter(
+                                values: points
+                                    .map((p) => p.gpa)
+                                    .toList(),
+                                yMin: yMin,
+                                yMax: yMax,
+                                lineColor: primary,
+                                fillColor:
+                                    primary.withValues(alpha: 0.08),
+                                gridColor: colors.border
+                                    .withValues(alpha: 0.3),
+                                dotSurface: Theme.of(context)
+                                    .colorScheme
+                                    .surface,
+                                labelStyle: text.labelSmall!.copyWith(
+                                  color: colors.mutedForeground,
+                                  fontSize: 10,
+                                ),
+                                dates: points
+                                    .map((p) => p.date)
+                                    .toList(),
+                                touchedIndex: _touchedIndex,
                               ),
                             ),
                           );
                         },
                       ),
                     ),
-                    topTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
                   ),
-                  borderData: FlBorderData(show: false),
-                  lineTouchData: LineTouchData(
-                    touchTooltipData: LineTouchTooltipData(
-                      getTooltipItems: (touchedSpots) {
-                        return touchedSpots.map((spot) {
-                          final pt = points[spot.spotIndex];
-                          return LineTooltipItem(
-                            '${pt.gpa.toStringAsFixed(2)} GPA\n${pt.label}',
-                            text.labelSmall!.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          );
-                        }).toList();
-                      },
-                    ),
-                  ),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: spots,
-                      isCurved: true,
-                      curveSmoothness: 0.25,
-                      color: primary,
-                      barWidth: 3,
-                      dotData: FlDotData(
-                        show: true,
-                        getDotPainter: (spot, percent, bar, index) =>
-                            FlDotCirclePainter(
-                          radius: 4,
-                          color: primary,
-                          strokeWidth: 2,
-                          strokeColor:
-                              Theme.of(context).colorScheme.surface,
-                        ),
-                      ),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        color: primary.withValues(alpha: 0.08),
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
             );
           },
@@ -755,6 +739,153 @@ class _GpaTrendChart extends ConsumerWidget {
       ],
     );
   }
+
+  void _hitTest(Offset local, Size size, int count) {
+    if (count == 0) return;
+    const leftPad = 36.0;
+    const rightPad = 4.0;
+    final chartW = size.width - leftPad - rightPad;
+    final dx = local.dx - leftPad;
+    if (dx < 0 || dx > chartW) return;
+    final idx = (dx / chartW * (count - 1)).round().clamp(0, count - 1);
+    if (idx != _touchedIndex) setState(() => _touchedIndex = idx);
+  }
+}
+
+class _TrendLinePainter extends CustomPainter {
+  final List<double> values;
+  final double yMin;
+  final double yMax;
+  final Color lineColor;
+  final Color fillColor;
+  final Color gridColor;
+  final Color dotSurface;
+  final TextStyle labelStyle;
+  final List<DateTime> dates;
+  final int? touchedIndex;
+
+  _TrendLinePainter({
+    required this.values,
+    required this.yMin,
+    required this.yMax,
+    required this.lineColor,
+    required this.fillColor,
+    required this.gridColor,
+    required this.dotSurface,
+    required this.labelStyle,
+    required this.dates,
+    required this.touchedIndex,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const leftPad = 36.0;
+    const rightPad = 4.0;
+    const topPad = 4.0;
+    const bottomPad = 22.0;
+
+    final chartRect = Rect.fromLTRB(
+        leftPad, topPad, size.width - rightPad, size.height - bottomPad);
+
+    final yRange = yMax - yMin;
+    if (yRange <= 0 || values.isEmpty) return;
+
+    double xOf(int i) =>
+        chartRect.left +
+        (values.length == 1
+            ? chartRect.width / 2
+            : i / (values.length - 1) * chartRect.width);
+    double yOf(double v) =>
+        chartRect.bottom - ((v - yMin) / yRange) * chartRect.height;
+
+    // Grid lines
+    final gridPaint = Paint()
+      ..color = gridColor
+      ..strokeWidth = 1;
+    for (var g = (yMin / 0.5).ceil() * 0.5; g <= yMax; g += 0.5) {
+      final y = yOf(g);
+      canvas.drawLine(
+          Offset(chartRect.left, y), Offset(chartRect.right, y), gridPaint);
+      _drawText(canvas, g.toStringAsFixed(1), Offset(0, y - 6), labelStyle,
+          leftPad - 4, TextAlign.right);
+    }
+
+    // Bottom date labels
+    final step = math.max(1, (values.length / 5).ceil());
+    for (var i = 0; i < values.length; i += step) {
+      final label = '${dates[i].month}/${dates[i].day}';
+      _drawText(canvas, label, Offset(xOf(i) - 14, chartRect.bottom + 4),
+          labelStyle, 28, TextAlign.center);
+    }
+
+    if (values.length < 2) return;
+
+    // Build path
+    final path = Path();
+    path.moveTo(xOf(0), yOf(values[0]));
+    for (var i = 1; i < values.length; i++) {
+      final x0 = xOf(i - 1), y0 = yOf(values[i - 1]);
+      final x1 = xOf(i), y1 = yOf(values[i]);
+      final cx = (x0 + x1) / 2;
+      path.cubicTo(cx, y0, cx, y1, x1, y1);
+    }
+
+    // Fill
+    final fillPath = Path.from(path)
+      ..lineTo(xOf(values.length - 1), chartRect.bottom)
+      ..lineTo(xOf(0), chartRect.bottom)
+      ..close();
+    canvas.drawPath(
+      fillPath,
+      Paint()
+        ..shader = ui.Gradient.linear(
+          Offset(0, chartRect.top),
+          Offset(0, chartRect.bottom),
+          [fillColor, fillColor.withValues(alpha: 0)],
+        ),
+    );
+
+    // Line
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = lineColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+
+    // Dots
+    final dotFill = Paint()..color = lineColor;
+    final dotStroke = Paint()
+      ..color = dotSurface
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    for (var i = 0; i < values.length; i++) {
+      final c = Offset(xOf(i), yOf(values[i]));
+      final r = i == touchedIndex ? 6.0 : 3.5;
+      canvas.drawCircle(c, r, dotFill);
+      canvas.drawCircle(c, r, dotStroke);
+    }
+  }
+
+  void _drawText(Canvas canvas, String text, Offset offset, TextStyle style,
+      double maxWidth, TextAlign align) {
+    final tp = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: ui.TextDirection.ltr,
+      textAlign: align,
+    )..layout(maxWidth: maxWidth);
+    tp.paint(canvas, offset);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TrendLinePainter old) =>
+      old.values != values ||
+      old.touchedIndex != touchedIndex ||
+      old.lineColor != lineColor;
 }
 
 // ─── Target Calculator ──────────────────────────────────────────
